@@ -11,10 +11,9 @@ import { Tabs } from "@/components/ui/tabs";
 import { RichNotes } from "@/components/ui/rich-notes";
 import { Avatar } from "@/components/ui/avatar";
 import { TaskRow } from "@/components/ui/task-row";
-import { Toast } from "@/components/ui/toast";
-import { Dialog } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
+import { PropertyRow } from "@/components/ui/property-row";
+import { SubtaskItem } from "@/components/ui/subtask-item";
+import { ActivityLog } from "@/components/ui/activity-log";
 import { playCompleteSound, isSoundEnabled, setSoundEnabled } from "@/lib/sound";
 import {
   Search,
@@ -31,9 +30,9 @@ import {
   ListTodo,
   FileText,
   Sliders,
-  BellRing,
   Layers,
-  Sparkles,
+  Calendar,
+  ChevronDown,
 } from "lucide-react";
 
 export default function UIKitPage() {
@@ -45,15 +44,16 @@ export default function UIKitPage() {
   const [cbChecked, setCbChecked] = React.useState(true);
   const [cbIndeterminate, setCbIndeterminate] = React.useState(true);
   const [switchVal, setSwitchVal] = React.useState(true);
-  const [tabVal, setTabVal] = React.useState("all");
-  const [statusVal, setStatusVal] = React.useState("in_progress");
+  const [statusVal, setStatusVal] = React.useState("todo");
   const [notesVal, setNotesVal] = React.useState(
-    "Need to research modern layout styles.\nPlan structure and content.\nFocus on highlighting case studies."
+    "My simple morning skincare steps.\nRemember to use sunscreen after moisturizing.\nCleanse, Tone\nMoisturize\nSunscreen."
   );
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [toastVisible, setToastVisible] = React.useState(true);
   const [selectedRow, setSelectedRow] = React.useState("row-1");
-  const [rowChecked, setRowChecked] = React.useState(false);
+  const [row1Checked, setRow1Checked] = React.useState(false);
+  const [sub1, setSub1] = React.useState(true);
+  const [sub2, setSub2] = React.useState(true);
+  const [sub3, setSub3] = React.useState(false);
+  const [sub4, setSub4] = React.useState(false);
 
   const toggleSound = () => {
     const next = !soundOn;
@@ -63,15 +63,13 @@ export default function UIKitPage() {
   };
 
   const navItems = [
-    { id: "buttons", label: "Buttons (Size Matrix)", icon: MousePointerClick },
+    { id: "buttons", label: "Buttons (Scale & Styles)", icon: MousePointerClick },
     { id: "inputs", label: "Inputs & Search", icon: TextCursorInput },
-    { id: "selection", label: "Checkbox & Switch", icon: CheckSquare },
-    { id: "dropdowns", label: "Dropdown Status Select", icon: Sliders },
-    { id: "tabs", label: "Segmented Tabs", icon: Layers },
+    { id: "selection", label: "Checkbox & Controls", icon: CheckSquare },
+    { id: "inspector", label: "Inspector Primitives", icon: Sliders },
     { id: "rich-notes", label: "Rich Notes Editor", icon: FileText },
     { id: "badges", label: "Badges & Tags", icon: Tag },
-    { id: "task-rows", label: "Task Rows (In Context)", icon: ListTodo },
-    { id: "feedback", label: "Toast & Dialog", icon: BellRing },
+    { id: "task-rows", label: "Task Rows (Reference)", icon: ListTodo },
     { id: "colors", label: "Color Tokens", icon: Palette },
     { id: "typography", label: "Typography", icon: Type },
   ];
@@ -125,7 +123,7 @@ export default function UIKitPage() {
         <aside className="w-60 border-r border-[#E5E7EB] bg-[#F7F8FA] p-3 flex flex-col justify-between shrink-0 overflow-y-auto">
           <div className="space-y-1">
             <div className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[#71717A]">
-              UI Kit Matrix
+              UI Kit Navigation
             </div>
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -164,64 +162,53 @@ export default function UIKitPage() {
         {/* Right Canvas */}
         <main className="flex-1 overflow-y-auto bg-white p-8 md:p-12 space-y-16">
           
-          {/* 1. BUTTONS (FULL MATRIX) */}
+          {/* 1. BUTTONS */}
           <section id="buttons" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Buttons — Size & Variant Matrix
+                Buttons — Size Scale & Styles
               </h2>
             </div>
 
             {/* Sizes */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <span className="text-xs font-semibold text-[#18181B] block">
                 Size Scale (xs, sm, md, lg)
               </span>
               <div className="flex flex-wrap items-center gap-3">
                 <Button size="xs">Extra Small (24px)</Button>
                 <Button size="sm">Small (28px)</Button>
-                <Button size="md">Medium (36px - Default)</Button>
-                <Button size="lg">Large (44px - Touch)</Button>
+                <Button size="md">Medium (36px)</Button>
+                <Button size="lg">Large (44px)</Button>
               </div>
             </div>
 
-            {/* Variants */}
-            <div className="space-y-3">
+            {/* Real Buttons in App */}
+            <div className="space-y-2.5">
               <span className="text-xs font-semibold text-[#18181B] block">
-                Visual Variants
+                Application Action Buttons
               </span>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="primary">Primary Solid</Button>
-                <Button variant="secondary">Secondary Gray</Button>
-                <Button variant="outline">Outline Border</Button>
-                <Button variant="ghost">Ghost Button</Button>
-                <Button variant="action" leftIcon={<Plus className="h-4 w-4" />}>
+                <Button variant="primary" size="md">
+                  Close Details
+                </Button>
+                <Button variant="secondary" size="sm">
+                  Sort: Newest
+                </Button>
+                <Button variant="outline" size="sm">
+                  Filter: Unread
+                </Button>
+                <Button variant="outline" size="sm" rightIcon={<ChevronDown className="h-3.5 w-3.5 text-zinc-400" />}>
+                  Move Task to...
+                </Button>
+                <Button variant="action" size="sm" leftIcon={<Plus className="h-4 w-4" />}>
                   New task
+                </Button>
+                <Button variant="ghost" size="sm" leftIcon={<Plus className="h-3.5 w-3.5 text-[#2563EB]" />}>
+                  Add Project
                 </Button>
                 <Button variant="destructive" size="sm">
                   Delete
-                </Button>
-                <Button variant="link">Inline Link</Button>
-              </div>
-            </div>
-
-            {/* States */}
-            <div className="space-y-3">
-              <span className="text-xs font-semibold text-[#18181B] block">
-                States (Loading, Disabled, Icon-Only)
-              </span>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button variant="primary" isLoading size="sm">
-                  Saving
-                </Button>
-                <Button variant="outline" disabled size="sm">
-                  Disabled
-                </Button>
-                <Button variant="outline" size="iconSm">
-                  <Search className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="secondary" size="iconMd">
-                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -231,21 +218,21 @@ export default function UIKitPage() {
           <section id="inputs" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Inputs & Search
+                Inputs & Quick Find
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <span className="text-xs font-medium text-[#71717A] block mb-1">
-                  Small (28px) / Search Icon
+                <span className="text-xs font-medium text-[#71717A] block mb-1.5">
+                  Quick find (Sidebar & Header)
                 </span>
                 <Input
                   size="sm"
-                  placeholder="Quick find..."
+                  placeholder="Quick find"
                   leftIcon={<Search className="h-3.5 w-3.5" />}
                   rightAction={
-                    <span className="text-[10px] font-mono text-[#A1A1AA] bg-[#F4F5F7] px-1 py-0.5 rounded border border-[#E5E7EB]">
+                    <span className="text-[10px] font-mono text-[#A1A1AA] bg-[#F4F5F7] px-1.5 py-0.5 rounded border border-[#E5E7EB]">
                       ⌘K
                     </span>
                   }
@@ -253,25 +240,24 @@ export default function UIKitPage() {
               </div>
 
               <div>
-                <span className="text-xs font-medium text-[#71717A] block mb-1">
-                  Medium (36px - Default)
+                <span className="text-xs font-medium text-[#71717A] block mb-1.5">
+                  Title Field (Inspector)
                 </span>
                 <Input
                   size="md"
-                  defaultValue="Build a portfolio website"
-                  helperText="Press Enter to update title"
+                  defaultValue="Daily Routine"
                 />
               </div>
 
               <div>
-                <span className="text-xs font-medium text-[#71717A] block mb-1">
-                  Error State
+                <span className="text-xs font-medium text-[#71717A] block mb-1.5">
+                  Field with Error
                 </span>
                 <Input
                   size="md"
                   error
-                  defaultValue="Invalid date format"
-                  errorMessage="Please select a valid deadline"
+                  defaultValue="2024-99-99"
+                  errorMessage="Invalid date"
                 />
               </div>
             </div>
@@ -281,15 +267,14 @@ export default function UIKitPage() {
           <section id="selection" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Checkbox & Switch (Mac Native Style)
+                Checkbox & Controls
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Checkboxes */}
               <div className="p-4 rounded-xl border border-[#E5E7EB] space-y-3">
                 <span className="text-xs font-semibold text-[#18181B] block">
-                  Checkbox States
+                  Things 3 Checkbox States
                 </span>
                 <div className="flex flex-wrap items-center gap-6">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -313,7 +298,7 @@ export default function UIKitPage() {
                       indeterminate={cbIndeterminate}
                       onCheckedChange={() => setCbIndeterminate(!cbIndeterminate)}
                     />
-                    <span className="text-xs text-[#18181B]">Indeterminate (Partial)</span>
+                    <span className="text-xs text-[#18181B]">Indeterminate</span>
                   </label>
 
                   <label className="flex items-center gap-2 opacity-40">
@@ -323,10 +308,9 @@ export default function UIKitPage() {
                 </div>
               </div>
 
-              {/* Switches */}
               <div className="p-4 rounded-xl border border-[#E5E7EB] space-y-3">
                 <span className="text-xs font-semibold text-[#18181B] block">
-                  Toggle Switch (Settings)
+                  Toggle Switch
                 </span>
                 <div className="flex items-center gap-6">
                   <label className="flex items-center gap-2.5 cursor-pointer">
@@ -335,7 +319,7 @@ export default function UIKitPage() {
                       onCheckedChange={setSwitchVal}
                     />
                     <span className="text-xs text-[#18181B]">
-                      Sound feedback ({switchVal ? "Active" : "Disabled"})
+                      Sound feedback
                     </span>
                   </label>
 
@@ -348,71 +332,163 @@ export default function UIKitPage() {
             </div>
           </section>
 
-          {/* 4. DROPDOWN STATUS SELECTOR */}
-          <section id="dropdowns" className="scroll-mt-6 space-y-6">
+          {/* 4. INSPECTOR PRIMITIVES */}
+          <section id="inspector" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Dropdown Status Selector (Inspector Primitive)
+                Task Details Inspector Primitives (Properties, Sub-tasks, Activity)
               </h2>
             </div>
 
-            <div className="max-w-xs space-y-2">
-              <span className="text-xs font-medium text-[#71717A] block">
-                Status Selector (Click to open menu)
-              </span>
-              <Dropdown
-                options={statusOptions}
-                value={statusVal}
-                onChange={setStatusVal}
-              />
+            <div className="max-w-md bg-white border border-[#E5E7EB] rounded-xl p-5 space-y-5">
+              <div className="border-b border-[#E5E7EB] pb-3">
+                <span className="text-sm font-bold text-[#18181B]">
+                  Task Details: Daily Routine
+                </span>
+              </div>
+
+              {/* Properties Grid */}
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-[#18181B] block mb-2">
+                  Properties
+                </span>
+
+                <PropertyRow label="Project">
+                  <span className="text-xs text-[#18181B] font-medium flex items-center gap-1.5">
+                    <span>😎</span>
+                    <span>Personal</span>
+                  </span>
+                </PropertyRow>
+
+                <PropertyRow label="Due Date">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#18181B] flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                      November 3, 2024
+                    </span>
+                    <Badge variant="today">Today</Badge>
+                  </div>
+                </PropertyRow>
+
+                <PropertyRow label="Status" labelIcon={<ChevronDown className="h-3 w-3 text-zinc-400" />}>
+                  <div className="w-40">
+                    <Dropdown
+                      size="sm"
+                      options={statusOptions}
+                      value={statusVal}
+                      onChange={setStatusVal}
+                    />
+                  </div>
+                </PropertyRow>
+
+                <PropertyRow label="Assignee">
+                  <div className="flex items-center gap-2">
+                    <Avatar initials="A" size="sm" />
+                    <span className="text-xs text-[#18181B]">Abram Vaccaro</span>
+                  </div>
+                </PropertyRow>
+
+                <PropertyRow label="Tags">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge variant="tag" prefixHash>Routine</Badge>
+                    <Badge variant="tag" prefixHash>SelfCare</Badge>
+                    <button
+                      type="button"
+                      className="h-5 w-5 inline-flex items-center justify-center rounded border border-[#E5E7EB] text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                </PropertyRow>
+              </div>
+
+              {/* Sub-tasks Section */}
+              <div className="border-t border-[#E5E7EB] pt-4 space-y-2">
+                <span className="text-xs font-bold text-[#18181B] block">
+                  Sub-tasks
+                </span>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <SubtaskItem
+                    title="Face Wash"
+                    completed={sub1}
+                    onCompletedChange={setSub1}
+                  />
+                  <SubtaskItem
+                    title="Apply Toner"
+                    completed={sub2}
+                    onCompletedChange={setSub2}
+                  />
+                  <SubtaskItem
+                    title="Apply Moisturizer"
+                    completed={sub3}
+                    onCompletedChange={setSub3}
+                  />
+                  <SubtaskItem
+                    title="Apply Sunscreen"
+                    completed={sub4}
+                    onCompletedChange={setSub4}
+                  />
+                </div>
+              </div>
+
+              {/* Activity Log Section */}
+              <div className="border-t border-[#E5E7EB] pt-4">
+                <ActivityLog
+                  entries={[
+                    {
+                      id: "act-1",
+                      time: "11:00 AM",
+                      actor: "Abram Vaccaro",
+                      description: 'updated status to "To Do".',
+                    },
+                    {
+                      id: "act-2",
+                      time: "11:05 AM",
+                      actor: "Abram Vaccaro",
+                      description: "marked as 'Done'.",
+                    },
+                  ]}
+                />
+              </div>
+
+              {/* Action Bar Footer */}
+              <div className="border-t border-[#E5E7EB] pt-4 flex items-center justify-between gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  rightIcon={<ChevronDown className="h-3 w-3 text-zinc-400 ml-1" />}
+                >
+                  Move Task to...
+                </Button>
+                <Button variant="primary" size="sm">
+                  Close Details
+                </Button>
+              </div>
             </div>
           </section>
 
-          {/* 5. SEGMENTED TABS */}
-          <section id="tabs" className="scroll-mt-6 space-y-6">
-            <div className="border-b border-[#E5E7EB] pb-2">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Segmented Tabs (View Filters)
-              </h2>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <Tabs
-                tabs={[
-                  { id: "all", label: "All", count: 12 },
-                  { id: "todo", label: "To Do", count: 7 },
-                  { id: "in_progress", label: "In Progress", count: 3 },
-                  { id: "done", label: "Done", count: 2 },
-                ]}
-                activeId={tabVal}
-                onChange={setTabVal}
-                size="sm"
-              />
-            </div>
-          </section>
-
-          {/* 6. RICH NOTES */}
+          {/* 5. RICH NOTES */}
           <section id="rich-notes" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Rich Notes Editor (Inspector Primitive)
+                Rich Notes Editor
               </h2>
             </div>
 
-            <div className="max-w-xl">
+            <div className="max-w-md">
               <RichNotes
                 value={notesVal}
                 onChange={setNotesVal}
-                placeholder="Write markdown notes or task checklist..."
+                placeholder="My simple morning skincare steps..."
               />
             </div>
           </section>
 
-          {/* 7. BADGES & TAGS */}
+          {/* 6. BADGES & TAGS */}
           <section id="badges" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Badges & Tags (Exact Reference Palette)
+                Badges & Tags (Reference Palette)
               </h2>
             </div>
 
@@ -433,19 +509,19 @@ export default function UIKitPage() {
             </div>
           </section>
 
-          {/* 8. TASK ROWS */}
+          {/* 7. TASK ROWS */}
           <section id="task-rows" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Task Row Component (Real Application Context)
+                Task Row Component (Exact Reference Anatomy)
               </h2>
             </div>
 
             <div className="max-w-2xl bg-white rounded-xl border border-[#E5E7EB] p-2 space-y-1">
               <TaskRow
                 title="Daily Routine"
-                completed={rowChecked}
-                onCompletedChange={setRowChecked}
+                completed={row1Checked}
+                onCompletedChange={setRow1Checked}
                 dateBadge={<Badge variant="today">Today</Badge>}
                 selected={selectedRow === "row-1"}
                 onSelect={() => setSelectedRow("row-1")}
@@ -485,98 +561,7 @@ export default function UIKitPage() {
             </div>
           </section>
 
-          {/* 9. FEEDBACK & DIALOGS */}
-          <section id="feedback" className="scroll-mt-6 space-y-6">
-            <div className="border-b border-[#E5E7EB] pb-2">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Feedback, Toast & Confirmation Dialog
-              </h2>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-6">
-              {toastVisible && (
-                <Toast
-                  message="Task marked as done"
-                  onUndo={() => {
-                    playCompleteSound();
-                    setToastVisible(false);
-                    setTimeout(() => setToastVisible(true), 2000);
-                  }}
-                />
-              )}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDialogOpen(true)}
-              >
-                Open Confirmation Dialog
-              </Button>
-
-              <Dialog
-                isOpen={dialogOpen}
-                onClose={() => setDialogOpen(false)}
-                title="Delete project?"
-                description="This will move all 7 tasks to Trash. You can restore them anytime."
-                footer={
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDialogOpen(false)}
-                    >
-                      Delete Project
-                    </Button>
-                  </>
-                }
-              />
-            </div>
-
-            {/* Skeletons & Empty State */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-              <div className="p-4 rounded-xl border border-[#E5E7EB] space-y-3">
-                <span className="text-xs font-semibold text-[#18181B] block">
-                  Skeleton Loading Shimmer
-                </span>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2.5">
-                    <Skeleton className="h-4 w-4 rounded-[4px]" />
-                    <Skeleton className="h-4 w-48" />
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <Skeleton className="h-4 w-4 rounded-[4px]" />
-                    <Skeleton className="h-4 w-36" />
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <Skeleton className="h-4 w-4 rounded-[4px]" />
-                    <Skeleton className="h-4 w-56" />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <EmptyState
-                  title="No tasks in this section"
-                  description="Add your first task to start organizing."
-                  action={
-                    <Button variant="outline" size="xs">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add task
-                    </Button>
-                  }
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* 10. COLOR TOKENS */}
+          {/* 8. COLOR TOKENS */}
           <section id="colors" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
@@ -617,7 +602,7 @@ export default function UIKitPage() {
             </div>
           </section>
 
-          {/* 11. TYPOGRAPHY */}
+          {/* 9. TYPOGRAPHY */}
           <section id="typography" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">

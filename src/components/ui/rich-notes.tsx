@@ -120,3 +120,4 @@ export const RichNotes = React.forwardRef<HTMLTextAreaElement, RichNotesProps>(
 );
 
 RichNotes.displayName = "RichNotes";
+

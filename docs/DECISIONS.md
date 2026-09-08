@@ -39,3 +39,10 @@
 - **Decision**: Official Project Name = `nuetty - to do list`. Removed artificial macOS window traffic lights and `Full Screen Canvas` badge.
 - **Status**: APPROVED (User Explicit Decision)
 - **Reason**: Requested by user to keep UI quiet, native, and free from redundant decorative elements.
+
+---
+
+## D-009
+- **Decision**: UI Kit v1.0 LOCKED. Proceed to Phase 4 (Layout System).
+- **Status**: APPROVED (User Explicit Decision)
+- **Reason**: User verified the complete UI Kit in `/ui-kit`, confirmed absence of AI slop, and gave explicit green light to advance.

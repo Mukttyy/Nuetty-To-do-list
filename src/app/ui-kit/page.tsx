@@ -128,8 +128,8 @@ export default function UIKitPage() {
                 type="button"
                 onClick={() => scrollTo(item.id)}
                 className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${isActive
-                    ? "bg-[#EAECEE] text-[#18181B] font-semibold"
-                    : "text-[#71717A] hover:bg-[#ECEEF1] hover:text-[#18181B]"
+                  ? "bg-[#EAECEE] text-[#18181B] font-semibold"
+                  : "text-[#71717A] hover:bg-[#ECEEF1] hover:text-[#18181B]"
                   }`}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />

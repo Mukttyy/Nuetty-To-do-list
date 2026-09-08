@@ -104,14 +104,14 @@ export default function UIKitPage() {
       {/* Left Sidebar — Mentok dari paling atas ke paling bawah */}
       <aside className="w-60 border-r border-[#E5E7EB] bg-[#F7F8FA] flex flex-col justify-between shrink-0 h-full">
         {/* Top of Sidebar: Profile */}
-        <div className="h-11 px-3.5 border-b border-[#E5E7EB] flex items-center justify-between shrink-0 bg-[#F7F8FA]">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="pt-5 px-4 pb-2 flex items-center justify-between shrink-0 bg-[#F7F8FA] cursor-pointer hover:opacity-85 transition-opacity">
+          <div className="flex items-center gap-2.5 min-w-0">
             <Avatar initials="A" size="sm" />
             <span className="text-xs font-semibold text-[#18181B] truncate">
               Abram Vaccaro
             </span>
           </div>
-          <span className="text-[10px] text-[#71717A] font-mono">Personal</span>
+          <ChevronDown className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
         </div>
 
         {/* Navigation list */}

@@ -14,6 +14,8 @@ import { TaskRow } from "@/components/ui/task-row";
 import { PropertyRow } from "@/components/ui/property-row";
 import { SubtaskItem } from "@/components/ui/subtask-item";
 import { ActivityLog } from "@/components/ui/activity-log";
+import { SidebarItem } from "@/components/ui/sidebar-item";
+import { SectionHeader } from "@/components/ui/section-header";
 import { playCompleteSound, isSoundEnabled, setSoundEnabled } from "@/lib/sound";
 import {
   Search,
@@ -33,6 +35,11 @@ import {
   Layers,
   Calendar,
   ChevronDown,
+  Inbox,
+  Clock,
+  Archive,
+  Trash2,
+  FolderKanban,
 } from "lucide-react";
 
 export default function UIKitPage() {
@@ -69,6 +76,8 @@ export default function UIKitPage() {
     { id: "inspector", label: "Inspector Primitives", icon: Sliders },
     { id: "rich-notes", label: "Rich Notes Editor", icon: FileText },
     { id: "badges", label: "Badges & Tags", icon: Tag },
+    { id: "sidebar-nav", label: "Sidebar Nav Items", icon: FolderKanban },
+    { id: "section-headers", label: "Section Headers", icon: Layers },
     { id: "task-rows", label: "Task Rows (Reference)", icon: ListTodo },
     { id: "colors", label: "Color Tokens", icon: Palette },
     { id: "typography", label: "Typography", icon: Type },
@@ -133,11 +142,10 @@ export default function UIKitPage() {
                   key={item.id}
                   type="button"
                   onClick={() => scrollTo(item.id)}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${
-                    isActive
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${isActive
                       ? "bg-[#EAECEE] text-[#18181B] font-semibold"
                       : "text-[#71717A] hover:bg-[#ECEEF1] hover:text-[#18181B]"
-                  }`}
+                    }`}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
                   <span>{item.label}</span>
@@ -161,7 +169,7 @@ export default function UIKitPage() {
 
         {/* Right Canvas */}
         <main className="flex-1 overflow-y-auto bg-white p-8 md:p-12 space-y-16">
-          
+
           {/* 1. BUTTONS */}
           <section id="buttons" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
@@ -509,7 +517,71 @@ export default function UIKitPage() {
             </div>
           </section>
 
-          {/* 7. TASK ROWS */}
+          {/* 7. SIDEBAR NAV ITEMS */}
+          <section id="sidebar-nav" className="scroll-mt-6 space-y-6">
+            <div className="border-b border-[#E5E7EB] pb-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
+                Sidebar Navigation Items (Exact Reference Anatomy)
+              </h2>
+            </div>
+
+            <div className="max-w-xs space-y-1 bg-[#F7F8FA] p-2 rounded-xl border border-[#E5E7EB]">
+              <SidebarItem
+                icon={<Inbox className="h-4 w-4 text-[#2563EB]" />}
+                label="Inbox"
+              />
+              <SidebarItem
+                icon={<Calendar className="h-4 w-4 text-[#10B981]" />}
+                label="Today"
+                count={7}
+                active
+              />
+              <SidebarItem
+                icon={<Clock className="h-4 w-4 text-[#8B5CF6]" />}
+                label="Upcoming"
+                count={3}
+              />
+              <SidebarItem
+                icon={<Archive className="h-4 w-4 text-[#F59E0B]" />}
+                label="Someday"
+                count={5}
+              />
+              <SidebarItem
+                icon={<Trash2 className="h-4 w-4 text-zinc-400" />}
+                label="Trash"
+              />
+              <div className="pt-2 border-t border-[#E5E7EB]">
+                <SidebarItem
+                  emoji="😎"
+                  label="Personal"
+                  count={7}
+                />
+                <SidebarItem
+                  emoji="🎯"
+                  label="Work"
+                  count={4}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 8. SECTION HEADERS */}
+          <section id="section-headers" className="scroll-mt-6 space-y-6">
+            <div className="border-b border-[#E5E7EB] pb-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
+                Section Headers (Canvas Group Headers)
+              </h2>
+            </div>
+
+            <div className="max-w-xs space-y-2">
+              <SectionHeader title="Skincare" count={4} isOpen />
+              <SectionHeader title="Fitness" count={3} emoji="🏋️" isOpen />
+              <SectionHeader title="Home & Family" count={6} emoji="🏠" isOpen={false} />
+              <SectionHeader title="Long-term Goals" count={1} emoji="🎯" isOpen={false} />
+            </div>
+          </section>
+
+          {/* 9. TASK ROWS */}
           <section id="task-rows" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">

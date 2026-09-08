@@ -100,74 +100,81 @@ export default function UIKitPage() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-white text-[#18181B] overflow-hidden select-none">
-      {/* Top Bar */}
-      <header className="h-11 border-b border-[#E5E7EB] bg-white px-5 flex items-center justify-between shrink-0 z-30">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold tracking-tight text-[#18181B]">
-            nuetty - to do list
-          </span>
-          <span className="text-xs text-[#71717A] font-normal">/ UI Kit</span>
+    <div className="h-screen w-screen flex bg-white text-[#18181B] overflow-hidden select-none">
+      {/* Left Sidebar — Mentok dari paling atas ke paling bawah */}
+      <aside className="w-60 border-r border-[#E5E7EB] bg-[#F7F8FA] flex flex-col justify-between shrink-0 h-full">
+        {/* Top of Sidebar: Profile */}
+        <div className="h-11 px-3.5 border-b border-[#E5E7EB] flex items-center justify-between shrink-0 bg-[#F7F8FA]">
+          <div className="flex items-center gap-2 min-w-0">
+            <Avatar initials="A" size="sm" />
+            <span className="text-xs font-semibold text-[#18181B] truncate">
+              Abram Vaccaro
+            </span>
+          </div>
+          <span className="text-[10px] text-[#71717A] font-mono">Personal</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleSound}
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F5F7] transition-colors"
-          >
-            {soundOn ? (
-              <Volume2 className="h-3.5 w-3.5 text-emerald-600" />
-            ) : (
-              <VolumeX className="h-3.5 w-3.5 text-[#A1A1AA]" />
-            )}
-            <span>Sound {soundOn ? "On (820Hz Pop)" : "Muted"}</span>
-          </button>
+        {/* Navigation list */}
+        <div className="p-3 flex-1 overflow-y-auto space-y-1">
+          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#71717A]">
+            UI Kit Navigation
+          </div>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => scrollTo(item.id)}
+                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${isActive
+                    ? "bg-[#EAECEE] text-[#18181B] font-semibold"
+                    : "text-[#71717A] hover:bg-[#ECEEF1] hover:text-[#18181B]"
+                  }`}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </header>
 
-      {/* 2-Panel Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Rail */}
-        <aside className="w-60 border-r border-[#E5E7EB] bg-[#F7F8FA] p-3 flex flex-col justify-between shrink-0 overflow-y-auto">
-          <div className="space-y-1">
-            <div className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[#71717A]">
-              UI Kit Navigation
-            </div>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => scrollTo(item.id)}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${isActive
-                      ? "bg-[#EAECEE] text-[#18181B] font-semibold"
-                      : "text-[#71717A] hover:bg-[#ECEEF1] hover:text-[#18181B]"
-                    }`}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+        {/* Bottom of Sidebar */}
+        <div className="p-3 border-t border-[#E5E7EB] bg-[#F7F8FA]">
+          <p className="text-[11px] text-[#71717A]">
+            Workspace: Personal
+          </p>
+        </div>
+      </aside>
+
+      {/* Right Column: Mulai setelah sidebar ke kanan */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Header di kanan sidebar */}
+        <header className="h-11 border-b border-[#E5E7EB] bg-white px-6 flex items-center justify-between shrink-0 z-10">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-tight text-[#18181B]">
+              nuetty - to do list
+            </span>
+            <span className="text-xs text-[#71717A] font-normal">/ UI Kit</span>
           </div>
 
-          <div className="pt-3 border-t border-[#E5E7EB]">
-            <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-white border border-[#E5E7EB]">
-              <Avatar initials="A" size="sm" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-[#18181B] truncate">
-                  Abram Vaccaro
-                </p>
-                <p className="text-[10px] text-[#71717A] truncate">Workspace: Personal</p>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleSound}
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F5F7] transition-colors"
+            >
+              {soundOn ? (
+                <Volume2 className="h-3.5 w-3.5 text-emerald-600" />
+              ) : (
+                <VolumeX className="h-3.5 w-3.5 text-[#A1A1AA]" />
+              )}
+              <span>Sound {soundOn ? "On (820Hz Pop)" : "Muted"}</span>
+            </button>
           </div>
-        </aside>
+        </header>
 
-        {/* Right Canvas */}
+        {/* Main Canvas Scroll Area */}
         <main className="flex-1 overflow-y-auto bg-white p-8 md:p-12 space-y-16">
 
           {/* 1. BUTTONS */}

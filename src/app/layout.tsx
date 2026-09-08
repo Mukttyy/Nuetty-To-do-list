@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Taskify — Minimalist Task Manager",
-  description: "Things 3 & Linear-grade productivity task management system.",
+  title: "nuetty — to do list",
+  description: "Minimalist, quiet productivity task management system.",
 };
 
 export default function RootLayout({

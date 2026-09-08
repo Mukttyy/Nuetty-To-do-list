@@ -1,9 +1,9 @@
-# PROJECT CONSTITUTION — TASKIFY
+# PROJECT CONSTITUTION — NUETTY - TO DO LIST
 
 ## Project
-- **Name**: Taskify (Things 3 & Linear-Grade Task Manager)
+- **Name**: nuetty - to do list
 - **Purpose**: Minimalist, distraction-free, ultra-clean productivity task management system with native desktop feel, 3-column layout, zero-latency interactions, and strict anti-AI-slop design.
-- **Reference**: Taskify Web/Desktop reference screens (`app.taskify.com`)
+- **Reference**: Clean desktop web reference screens (Things 3 & Linear-Grade)
 
 ## Tech Stack
 - **Framework**: Next.js 15 (App Router)

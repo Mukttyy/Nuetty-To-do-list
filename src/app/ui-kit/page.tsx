@@ -62,19 +62,12 @@ export default function UIKitPage() {
     <div className="h-screen w-screen flex flex-col bg-white text-[#18181B] overflow-hidden select-none">
       {/* Top Application Bar */}
       <header className="h-11 border-b border-[#E5E7EB] bg-white px-5 flex items-center justify-between shrink-0 z-30">
-        <div className="flex items-center gap-3">
-          {/* macOS Traffic Lights */}
-          <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-[#FF5F56] border border-[#E0443E]" />
-            <span className="h-3 w-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]" />
-            <span className="h-3 w-3 rounded-full bg-[#27C93F] border border-[#1AAB29]" />
-          </div>
-          <span className="h-4 w-px bg-[#E5E7EB] ml-1" />
-          <span className="text-xs font-semibold tracking-tight text-[#18181B]">
-            Taskify UI Kit & Design System
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold tracking-tight text-[#18181B]">
+            nuetty - to do list
           </span>
-          <span className="text-[11px] font-mono text-[#71717A] bg-[#F4F5F7] px-2 py-0.5 rounded border border-[#E5E7EB]">
-            Full Screen Canvas
+          <span className="text-xs text-[#71717A] font-normal">
+            / UI Kit
           </span>
         </div>
 

@@ -10,7 +10,7 @@ export interface SidebarItemProps {
   active?: boolean;
   onClick?: () => void;
   className?: string;
-  emoji?: string;
+  compact?: boolean;
 }
 
 export function SidebarItem({
@@ -20,14 +20,17 @@ export function SidebarItem({
   active = false,
   onClick,
   className,
-  emoji,
+  compact = false,
 }: SidebarItemProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={compact ? label : undefined}
+      aria-label={compact ? label : undefined}
       className={cn(
-        "w-full flex items-center justify-between gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors select-none text-left",
+        "flex min-h-11 w-full items-center justify-between gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] font-medium transition-colors select-none md:min-h-8",
+        compact && "justify-center px-0",
         active
           ? "bg-[#EAECEE] text-[#18181B] font-semibold"
           : "text-[#71717A] hover:bg-[#ECEEF1] hover:text-[#18181B]",
@@ -35,25 +38,17 @@ export function SidebarItem({
       )}
     >
       <div className="flex items-center gap-2.5 min-w-0 truncate">
-        {emoji ? (
-          <span className="text-sm shrink-0">{emoji}</span>
-        ) : icon ? (
+        {icon ? (
           <span className="shrink-0 flex items-center justify-center">{icon}</span>
         ) : null}
-        <span className="truncate">{label}</span>
+        {!compact && <span className="truncate">{label}</span>}
       </div>
 
-      {count !== undefined && (
-        <span
-          className={cn(
-            "text-[11px] font-normal tabular-nums shrink-0",
-            active ? "text-[#71717A]" : "text-[#A1A1AA]"
-          )}
-        >
+      {!compact && count !== undefined && (
+        <span className="shrink-0 text-[12px] font-normal tabular-nums text-zinc-500">
           {count}
         </span>
       )}
     </button>
   );
 }
-

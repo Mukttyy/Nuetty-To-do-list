@@ -1,289 +1,172 @@
 "use client";
 
 import * as React from "react";
+import { Archive, Calendar, CheckCircle2, CircleDashed, Clock, Inbox } from "lucide-react";
+import { LoginView } from "@/components/auth/login-view";
 import { AppShell } from "@/components/layout/app-shell";
-import { type InspectorTaskData } from "@/components/layout/inspector-panel";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TaskRow } from "@/components/ui/task-row";
-import { SectionHeader } from "@/components/ui/section-header";
-import { Plus, Phone, Sparkles } from "lucide-react";
+import { CommandPalette } from "@/components/layout/command-palette";
+import { ProjectView } from "@/components/views/project-view";
+import { TaskListView, type TaskListActions } from "@/components/views/task-list-view";
+import { TrashView } from "@/components/views/trash-view";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { localDateKey, taskSchedule, useTasks } from "@/lib/use-tasks";
+import type { Task, TaskStatus } from "@/types/task";
 
-const INITIAL_TASK: InspectorTaskData = {
-  id: "task-1",
-  title: "Daily Routine",
-  projectEmoji: "😎",
-  projectName: "Personal",
-  dueDate: "November 3, 2024",
-  dueBadge: "Today",
-  status: "todo",
-  assigneeName: "Abram Vaccaro",
-  tags: ["Routine", "SelfCare"],
-  notes:
-    "My simple morning skincare steps.\nRemember to use sunscreen after moisturizing.\nCleanse, Tone\nMoisturize\nSunscreen.",
-  subtasks: [
-    { id: "sub-1", title: "Face Wash", completed: true },
-    { id: "sub-2", title: "Apply Toner", completed: true },
-    { id: "sub-3", title: "Apply Moisturizer", completed: false },
-    { id: "sub-4", title: "Apply Sunscreen", completed: false },
-  ],
-  activity: [
-    {
-      id: "act-1",
-      time: "11:00 AM",
-      actor: "Abram Vaccaro",
-      description: 'updated status to "To Do".',
-    },
-  ],
-};
+function initialViewFromUrl(): string {
+  if (typeof window === "undefined") return "today";
+  return new URLSearchParams(window.location.search).get("view") || "today";
+}
 
-export default function HomePage() {
-  const [activeView, setActiveView] = React.useState("project-personal");
-  const [selectedTask, setSelectedTask] = React.useState<InspectorTaskData | null>(
-    INITIAL_TASK
-  );
-  const [isInspectorOpen, setIsInspectorOpen] = React.useState(true);
+function addDays(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
-  // Section collapse states
-  const [openSkincare, setOpenSkincare] = React.useState(true);
-  const [openFitness, setOpenFitness] = React.useState(true);
-  const [openFamily, setOpenFamily] = React.useState(false);
-  const [openGoals, setOpenGoals] = React.useState(false);
+function TaskDashboard() {
+  const { user } = useAuth();
+  const taskState = useTasks(user?.name);
+  const { tasks, projects } = taskState;
+  const [activeView, setActiveViewState] = React.useState(initialViewFromUrl);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
+  const today = localDateKey();
 
-  // Task completion states
-  const [t1Done, setT1Done] = React.useState(false);
-  const [t2Done, setT2Done] = React.useState(false);
-  const [t3Done, setT3Done] = React.useState(false);
-  const [t4Done, setT4Done] = React.useState(false);
-  const [t5Done, setT5Done] = React.useState(false);
+  const setActiveView = React.useCallback((view: string) => {
+    setActiveViewState(view);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", view);
+    window.history.pushState({}, "", url);
+    taskState.collapseTask();
+  }, [taskState]);
 
-  const handleSelectTask = (task: InspectorTaskData) => {
-    setSelectedTask(task);
-    setIsInspectorOpen(true);
+  React.useEffect(() => {
+    const handlePopState = () => setActiveViewState(initialViewFromUrl());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const available = React.useMemo(() => tasks.filter((task) => !task.isDeleted && !task.completed), [tasks]);
+  const todayTasks = React.useMemo(() => available.filter((task) => task.dueDate && task.dueDate <= today), [available, today]);
+  const upcomingTasks = React.useMemo(() => available.filter((task) => task.dueDate && task.dueDate > today), [available, today]);
+  const inboxTasks = React.useMemo(() => available.filter((task) => taskSchedule(task) === "inbox"), [available]);
+  const anytimeTasks = React.useMemo(() => available.filter((task) => taskSchedule(task) === "anytime" && !task.dueDate), [available]);
+  const somedayTasks = React.useMemo(() => available.filter((task) => taskSchedule(task) === "someday"), [available]);
+  const completedTasks = React.useMemo(() => tasks.filter((task) => !task.isDeleted && task.completed), [tasks]);
+  const trashTasks = React.useMemo(() => tasks.filter((task) => task.isDeleted), [tasks]);
+  const activeProjectId = activeView.startsWith("project:") ? activeView.slice(8) : undefined;
+  const activeProject = projects.find((project) => project.id === activeProjectId);
+  const projectTasks = activeProject ? available.filter((task) => task.projectId === activeProject.id) : [];
+
+  const currentTasks = activeView === "inbox" ? inboxTasks
+    : activeView === "today" ? todayTasks
+      : activeView === "upcoming" ? upcomingTasks
+        : activeView === "anytime" ? anytimeTasks
+          : activeView === "someday" ? somedayTasks
+            : activeView === "completed" ? completedTasks
+              : activeView === "trash" ? trashTasks
+                : projectTasks;
+
+  const openSearchResult = React.useCallback((task: Task) => {
+    let destination: string;
+    if (task.isDeleted) destination = "trash";
+    else if (task.completed) destination = "completed";
+    else if (task.dueDate && task.dueDate <= today) destination = "today";
+    else if (task.dueDate && task.dueDate > today) destination = "upcoming";
+    else if (task.projectId && projects.some((project) => project.id === task.projectId && !project.archived)) destination = `project:${task.projectId}`;
+    else destination = taskSchedule(task);
+    setActiveView(destination);
+    taskState.selectTask(task);
+  }, [projects, setActiveView, taskState, today]);
+
+  React.useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
+        event.preventDefault();
+        setIsCommandPaletteOpen((open) => !open);
+        return;
+      }
+      if (isCommandPaletteOpen) return;
+      const tag = document.activeElement?.tagName.toLocaleLowerCase();
+      if (tag === "input" || tag === "textarea" || document.activeElement?.getAttribute("contenteditable") === "true") return;
+      if (event.key === "Escape" && taskState.selectedTask) {
+        event.preventDefault();
+        taskState.collapseTask();
+      } else if (event.code === "Space" && taskState.selectedTask) {
+        event.preventDefault();
+        taskState.toggleTask(taskState.selectedTask.id);
+      } else if ((event.key === "Delete" || event.key === "Backspace") && taskState.selectedTask) {
+        event.preventDefault();
+        taskState.deleteTask(taskState.selectedTask.id);
+      } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && currentTasks.length > 0) {
+        event.preventDefault();
+        const index = currentTasks.findIndex((task) => task.id === taskState.selectedTaskId);
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        const next = (index + delta + currentTasks.length) % currentTasks.length;
+        taskState.selectTask(currentTasks[next]);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentTasks, isCommandPaletteOpen, taskState]);
+
+  const commonActions: TaskListActions = {
+    selectedTaskId: taskState.selectedTaskId,
+    projects,
+    onSelectTask: taskState.selectTask,
+    onCloseExpand: taskState.collapseTask,
+    onToggleTask: taskState.toggleTask,
+    onDeleteTask: taskState.deleteTask,
+    onUpdateTitle: taskState.updateTaskTitle,
+    onUpdateNotes: taskState.updateTaskNotes,
+    onToggleSubtask: taskState.toggleSubtask,
+    onAddSubtask: taskState.addSubtask,
+    onDeleteSubtask: taskState.deleteSubtask,
+    onAddTag: taskState.addTag,
+    onRemoveTag: taskState.removeTag,
+    onStatusChange: (id, status) => taskState.updateTaskStatus(id, status as TaskStatus),
+    onProjectChange: taskState.moveTaskProject,
+    onSectionChange: taskState.updateTaskSection,
+    onScheduleChange: taskState.updateTaskSchedule,
+    onDueDateChange: taskState.updateTaskDueDate,
+    onPriorityChange: taskState.updateTaskPriority,
   };
 
-  return (
-    <AppShell
-      activeView={activeView}
-      onSelectView={setActiveView}
-      selectedTask={selectedTask}
-      isInspectorOpen={isInspectorOpen}
-      onCloseInspector={() => setIsInspectorOpen(false)}
-      onStatusChange={(status) => {
-        if (selectedTask) setSelectedTask({ ...selectedTask, status });
-      }}
-      onNotesChange={(notes) => {
-        if (selectedTask) setSelectedTask({ ...selectedTask, notes });
-      }}
-      onSubtaskToggle={(subtaskId, completed) => {
-        if (selectedTask) {
-          setSelectedTask({
-            ...selectedTask,
-            subtasks: selectedTask.subtasks.map((s) =>
-              s.id === subtaskId ? { ...s, completed } : s
-            ),
-          });
-        }
-      }}
-    >
-      {/* Canvas Top Bar (Starts right after sidebar) */}
-      <div className="h-11 px-8 border-b border-[#E5E7EB] flex items-center justify-between shrink-0 bg-white z-10">
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
-            Sort: Newest
-          </Button>
-          <Button variant="outline" size="sm">
-            Filter: Unread
-          </Button>
-        </div>
+  if (!taskState.isLoaded) return <div role="status" className="flex min-h-screen items-center justify-center text-sm text-zinc-500">Loading your workspace…</div>;
 
-        <div className="flex items-center gap-3 text-xs text-[#71717A]">
-          <a
-            href="/ui-kit"
-            className="text-xs font-semibold text-[#2563EB] hover:underline"
-          >
-            Open UI Kit Playground →
-          </a>
-        </div>
-      </div>
+  const listView = activeView === "inbox"
+    ? { title: "Inbox", description: "Capture first. Organize when you are ready.", icon: <Inbox className="h-4 w-4" />, tasks: inboxTasks, emptyTitle: "Inbox is clear", emptyDescription: "New tasks added here stay until you organize them.", placeholder: "Capture what needs your attention?", options: { schedule: "inbox" as const } }
+    : activeView === "today"
+      ? { title: "Today", description: "Due today and overdue.", icon: <Calendar className="h-4 w-4" />, tasks: todayTasks, emptyTitle: "Nothing due today", emptyDescription: "You can add a task for today or work from Anytime.", placeholder: "Add a task for today...", options: { schedule: "anytime" as const, dueDate: today } }
+      : activeView === "upcoming"
+        ? { title: "Upcoming", description: "Tasks with a future due date.", icon: <Clock className="h-4 w-4" />, tasks: upcomingTasks, emptyTitle: "Nothing upcoming", emptyDescription: "Choose a due date on any task to plan ahead.", placeholder: "Add an upcoming task...", options: { schedule: "anytime" as const, dueDate: addDays(today, 1) } }
+        : activeView === "anytime"
+          ? { title: "Anytime", description: "Active tasks without a due date.", icon: <CircleDashed className="h-4 w-4" />, tasks: anytimeTasks, emptyTitle: "No anytime tasks", emptyDescription: "Tasks without a date appear here.", placeholder: "Add a task you can do anytime...", options: { schedule: "anytime" as const } }
+          : activeView === "someday"
+            ? { title: "Someday", description: "Ideas without a commitment yet.", icon: <Archive className="h-4 w-4" />, tasks: somedayTasks, emptyTitle: "Someday is empty", emptyDescription: "Keep ideas here until they become actionable.", placeholder: "Save an idea for later...", options: { schedule: "someday" as const } }
+            : activeView === "completed"
+              ? { title: "Completed", description: "A record of finished work.", icon: <CheckCircle2 className="h-4 w-4" />, tasks: completedTasks, emptyTitle: "No completed tasks", emptyDescription: "Completed tasks will be kept here.", placeholder: "", options: {} }
+              : null;
 
-      {/* Canvas Content Container */}
-      <div className="flex-1 overflow-y-auto px-8 py-8 max-w-3xl space-y-8">
-        {/* Big Display Header */}
-        <div className="space-y-3">
-          <div className="text-3xl select-none">😎</div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#18181B]">
-            Personal
-          </h1>
-
-          <div>
-            <Button
-              variant="action"
-              size="sm"
-              leftIcon={<Plus className="h-4 w-4" />}
-              className="-ml-2.5"
-            >
-              New task
-            </Button>
-          </div>
-        </div>
-
-        {/* Section 1: Skincare */}
-        <div className="space-y-1.5">
-          <SectionHeader
-            title="Skincare"
-            count={4}
-            isOpen={openSkincare}
-            onToggle={() => setOpenSkincare(!openSkincare)}
-          />
-
-          {openSkincare && (
-            <div className="space-y-0.5 pt-1">
-              <TaskRow
-                title="Daily Routine"
-                completed={t1Done}
-                onCompletedChange={setT1Done}
-                dateBadge={<Badge variant="today">Today</Badge>}
-                selected={selectedTask?.id === "task-1" && isInspectorOpen}
-                onSelect={() => handleSelectTask(INITIAL_TASK)}
-              />
-
-              <TaskRow
-                title="Deep Exfoliation"
-                completed={t2Done}
-                onCompletedChange={setT2Done}
-                dateBadge={<Badge variant="tomorrow">Tomorrow</Badge>}
-                selected={selectedTask?.id === "task-2" && isInspectorOpen}
-                onSelect={() =>
-                  handleSelectTask({
-                    id: "task-2",
-                    title: "Deep Exfoliation",
-                    projectEmoji: "😎",
-                    projectName: "Personal",
-                    dueDate: "November 4, 2024",
-                    dueBadge: "Tomorrow",
-                    status: "todo",
-                    assigneeName: "Abram Vaccaro",
-                    tags: ["Routine", "Skincare"],
-                    notes: "Use AHA/BHA gentle exfoliating serum.",
-                    subtasks: [],
-                    activity: [],
-                  })
-                }
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Section 2: Fitness */}
-        <div className="space-y-1.5">
-          <SectionHeader
-            title="Fitness"
-            count={3}
-            emoji="🏋️"
-            isOpen={openFitness}
-            onToggle={() => setOpenFitness(!openFitness)}
-          />
-
-          {openFitness && (
-            <div className="space-y-0.5 pt-1">
-              <TaskRow
-                title="5km Run"
-                completed={t3Done}
-                onCompletedChange={setT3Done}
-                dateBadge={<Badge variant="tomorrow">Saturday</Badge>}
-                selected={selectedTask?.id === "task-3" && isInspectorOpen}
-                onSelect={() =>
-                  handleSelectTask({
-                    id: "task-3",
-                    title: "5km Run",
-                    projectEmoji: "😎",
-                    projectName: "Personal",
-                    dueDate: "November 9, 2024",
-                    dueBadge: "Saturday",
-                    status: "todo",
-                    assigneeName: "Abram Vaccaro",
-                    tags: ["Fitness", "Cardio"],
-                    notes: "Target pace: 5:30/km.",
-                    subtasks: [],
-                    activity: [],
-                  })
-                }
-              />
-
-              <TaskRow
-                title="Gym Session - Upper Body"
-                completed={t4Done}
-                onCompletedChange={setT4Done}
-                dateBadge={<Badge variant="today">Today</Badge>}
-                selected={selectedTask?.id === "task-4" && isInspectorOpen}
-                onSelect={() =>
-                  handleSelectTask({
-                    id: "task-4",
-                    title: "Gym Session - Upper Body",
-                    projectEmoji: "😎",
-                    projectName: "Personal",
-                    dueDate: "November 3, 2024",
-                    dueBadge: "Today",
-                    status: "in_progress",
-                    assigneeName: "Abram Vaccaro",
-                    tags: ["Fitness", "Gym"],
-                    notes: "Bench press, Incline dumbbell press, Pull-ups.",
-                    subtasks: [],
-                    activity: [],
-                  })
-                }
-              />
-
-              <TaskRow
-                title="Yoga Session"
-                completed={t5Done}
-                onCompletedChange={setT5Done}
-                dateBadge={<Badge variant="overdue">Overdue (2 days)</Badge>}
-                selected={selectedTask?.id === "task-5" && isInspectorOpen}
-                onSelect={() =>
-                  handleSelectTask({
-                    id: "task-5",
-                    title: "Yoga Session",
-                    projectEmoji: "😎",
-                    projectName: "Personal",
-                    dueDate: "November 1, 2024",
-                    dueBadge: "Overdue (2 days)",
-                    status: "todo",
-                    assigneeName: "Abram Vaccaro",
-                    tags: ["Fitness", "Mobility"],
-                    notes: "20 min full body recovery flow.",
-                    subtasks: [],
-                    activity: [],
-                  })
-                }
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Section 3: Home & Family (Collapsed by default) */}
-        <div className="space-y-1.5">
-          <SectionHeader
-            title="Home & Family"
-            count={6}
-            emoji="🏠"
-            isOpen={openFamily}
-            onToggle={() => setOpenFamily(!openFamily)}
-          />
-        </div>
-
-        {/* Section 4: Long-term Goals (Collapsed by default) */}
-        <div className="space-y-1.5">
-          <SectionHeader
-            title="Long-term Goals"
-            count={1}
-            emoji="🎯"
-            isOpen={openGoals}
-            onToggle={() => setOpenGoals(!openGoals)}
-          />
-        </div>
-      </div>
+  return <>
+    <AppShell activeView={activeView} onSelectView={setActiveView} onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} completedCount={currentTasks.filter((task) => task.completed).length} totalCount={currentTasks.length} syncStatus={taskState.syncStatus} onBeforeLogout={taskState.flushNow} counts={taskState.counts} projects={projects} onCreateProject={taskState.createProject}>
+      {listView && <TaskListView {...commonActions} title={listView.title} description={listView.description} icon={listView.icon} tasks={listView.tasks} emptyTitle={listView.emptyTitle} emptyDescription={listView.emptyDescription} allowCreate={activeView !== "completed"} createPlaceholder={listView.placeholder} onAddTask={(title) => taskState.createTask(title, listView.options)} />}
+      {activeProject && <ProjectView {...commonActions} project={activeProject} tasks={projectTasks} onAddTask={(title, sectionId) => taskState.createTask(title, { schedule: "anytime", projectId: activeProject.id, sectionId })} onRenameProject={(name) => taskState.renameProject(activeProject.id, name)} onArchiveProject={() => { taskState.archiveProject(activeProject.id); if (!activeProject.archived) setActiveView("inbox"); }} onDeleteProject={() => { taskState.deleteProject(activeProject.id); setActiveView("inbox"); }} onAddSection={(name) => taskState.addSection(activeProject.id, name)} onRenameSection={(sectionId, name) => taskState.renameSection(activeProject.id, sectionId, name)} onDeleteSection={(sectionId) => taskState.deleteSection(activeProject.id, sectionId)} />}
+      {activeView === "trash" && <TrashView tasks={trashTasks} projects={projects} onRestoreTask={taskState.restoreTask} onPermanentlyDeleteTask={taskState.permanentlyDeleteTask} onEmptyTrash={taskState.emptyTrash} />}
+      {!listView && !activeProject && activeView !== "trash" && <TaskListView {...commonActions} title="Not found" icon={<CircleDashed className="h-4 w-4" />} tasks={[]} emptyTitle="This view is unavailable" emptyDescription="Choose a view from the sidebar." allowCreate={false} />}
     </AppShell>
-  );
+
+    <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} tasks={tasks} projects={projects} onSelectTask={openSearchResult} />
+    {taskState.lastDeletedTaskId && <div role="status" className="fixed bottom-4 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-4 rounded-lg bg-zinc-900 px-4 py-3 text-xs text-white shadow-lg"><span>Task moved to Trash.</span><button type="button" onClick={taskState.undoDelete} className="font-semibold underline underline-offset-2">Undo</button></div>}
+    {taskState.syncError && <div role="alert" className="fixed bottom-4 right-4 z-[60] max-w-sm rounded-lg border border-amber-300 bg-white px-4 py-3 text-xs shadow-lg"><p>{taskState.syncError}</p><div className="mt-2 flex gap-3">{taskState.syncStatus === "conflict" ? <><button type="button" onClick={taskState.loadServerCopy} className="font-semibold underline">Use server copy</button><button type="button" onClick={taskState.keepLocalCopy} className="font-semibold underline">Keep this copy</button></> : <button type="button" onClick={taskState.retrySync} className="font-semibold underline">Retry</button>}</div></div>}
+  </>;
+}
+
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <div role="status" className="flex min-h-screen items-center justify-center text-sm text-zinc-500">Loading…</div>;
+  return isAuthenticated ? <TaskDashboard /> : <LoginView />;
+}
+
+export default function HomePage() {
+  return <AuthProvider><AppContent /></AuthProvider>;
 }

@@ -25,7 +25,7 @@ export function ActivityLog({
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
 
   return (
-    <div className={cn("text-xs select-none space-y-2", className)}>
+    <div className={cn("space-y-2 text-xs", className)}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -53,4 +53,3 @@ export function ActivityLog({
     </div>
   );
 }
-

@@ -7,8 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dropdown } from "@/components/ui/dropdown";
-import { Tabs } from "@/components/ui/tabs";
-import { RichNotes } from "@/components/ui/rich-notes";
+import { NotesField } from "@/components/ui/notes-field";
 import { Avatar } from "@/components/ui/avatar";
 import { TaskRow } from "@/components/ui/task-row";
 import { PropertyRow } from "@/components/ui/property-row";
@@ -16,13 +15,12 @@ import { SubtaskItem } from "@/components/ui/subtask-item";
 import { ActivityLog } from "@/components/ui/activity-log";
 import { SidebarItem } from "@/components/ui/sidebar-item";
 import { SectionHeader } from "@/components/ui/section-header";
-import { playCompleteSound, isSoundEnabled, setSoundEnabled } from "@/lib/sound";
+import { playCompleteSound, setSoundEnabled } from "@/lib/sound";
 import {
   Search,
   Volume2,
   VolumeX,
   Plus,
-  Phone,
   Palette,
   Type,
   CheckSquare,
@@ -40,6 +38,8 @@ import {
   Archive,
   Trash2,
   FolderKanban,
+  UserRound,
+  BriefcaseBusiness,
 } from "lucide-react";
 
 export default function UIKitPage() {
@@ -74,7 +74,7 @@ export default function UIKitPage() {
     { id: "inputs", label: "Inputs & Search", icon: TextCursorInput },
     { id: "selection", label: "Checkbox & Controls", icon: CheckSquare },
     { id: "inspector", label: "Inspector Primitives", icon: Sliders },
-    { id: "rich-notes", label: "Rich Notes Editor", icon: FileText },
+    { id: "notes", label: "Notes field", icon: FileText },
     { id: "badges", label: "Badges & Tags", icon: Tag },
     { id: "sidebar-nav", label: "Sidebar Nav Items", icon: FolderKanban },
     { id: "section-headers", label: "Section Headers", icon: Layers },
@@ -100,7 +100,7 @@ export default function UIKitPage() {
   };
 
   return (
-    <div className="h-screen w-screen flex bg-white text-[#18181B] overflow-hidden select-none">
+    <div className="flex h-full w-full overflow-hidden bg-white text-[#18181B]">
       {/* Left Sidebar — Mentok dari paling atas ke paling bawah */}
       <aside className="w-60 border-r border-[#E5E7EB] bg-[#F7F8FA] flex flex-col justify-between shrink-0 h-full">
         {/* Top of Sidebar: Profile */}
@@ -153,7 +153,7 @@ export default function UIKitPage() {
         <header className="h-11 border-b border-[#E5E7EB] bg-white px-6 flex items-center justify-between shrink-0 z-10">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-tight text-[#18181B]">
-              nuetty - to do list
+              Nuetty — Everything To Do List
             </span>
             <span className="text-xs text-[#71717A] font-normal">/ UI Kit</span>
           </div>
@@ -370,7 +370,7 @@ export default function UIKitPage() {
 
                 <PropertyRow label="Project">
                   <span className="text-xs text-[#18181B] font-medium flex items-center gap-1.5">
-                    <span>😎</span>
+                    <UserRound className="h-3.5 w-3.5 text-zinc-500" />
                     <span>Personal</span>
                   </span>
                 </PropertyRow>
@@ -482,16 +482,16 @@ export default function UIKitPage() {
             </div>
           </section>
 
-          {/* 5. RICH NOTES */}
-          <section id="rich-notes" className="scroll-mt-6 space-y-6">
+          {/* 5. NOTES */}
+          <section id="notes" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Rich Notes Editor
+                Notes Editor
               </h2>
             </div>
 
             <div className="max-w-md">
-              <RichNotes
+              <NotesField
                 value={notesVal}
                 onChange={setNotesVal}
                 placeholder="My simple morning skincare steps..."
@@ -559,12 +559,12 @@ export default function UIKitPage() {
               />
               <div className="pt-2 border-t border-[#E5E7EB]">
                 <SidebarItem
-                  emoji="😎"
+                  icon={<UserRound className="h-4 w-4" />}
                   label="Personal"
                   count={7}
                 />
                 <SidebarItem
-                  emoji="🎯"
+                  icon={<BriefcaseBusiness className="h-4 w-4" />}
                   label="Work"
                   count={4}
                 />
@@ -582,9 +582,9 @@ export default function UIKitPage() {
 
             <div className="max-w-xs space-y-2">
               <SectionHeader title="Skincare" count={4} isOpen />
-              <SectionHeader title="Fitness" count={3} emoji="🏋️" isOpen />
-              <SectionHeader title="Home & Family" count={6} emoji="🏠" isOpen={false} />
-              <SectionHeader title="Long-term Goals" count={1} emoji="🎯" isOpen={false} />
+              <SectionHeader title="Fitness" count={3} isOpen />
+              <SectionHeader title="Home & Family" count={6} isOpen={false} />
+              <SectionHeader title="Long-term Goals" count={1} isOpen={false} />
             </div>
           </section>
 
@@ -618,8 +618,6 @@ export default function UIKitPage() {
                 dateBadge={<Badge variant="today">Today</Badge>}
                 selected={selectedRow === "row-3"}
                 onSelect={() => setSelectedRow("row-3")}
-                addedAgo="1h ago"
-                showFolderIcon
               />
 
               <TaskRow
@@ -634,8 +632,6 @@ export default function UIKitPage() {
                 completed={true}
                 selected={selectedRow === "row-5"}
                 onSelect={() => setSelectedRow("row-5")}
-                addedAgo="1h ago"
-                categoryIcon={<Phone className="h-3.5 w-3.5" />}
               />
             </div>
           </section>
@@ -685,41 +681,49 @@ export default function UIKitPage() {
           <section id="typography" className="scroll-mt-6 space-y-6">
             <div className="border-b border-[#E5E7EB] pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
-                Typography
+                Calibrated Typography Scale (Desktop-Grade)
               </h2>
             </div>
 
             <div className="divide-y divide-[#F0F1F3]">
               <div className="py-3 flex items-baseline justify-between">
                 <span className="text-[11px] font-mono text-[#A1A1AA] w-36">Display Title</span>
-                <span className="text-3xl font-bold tracking-tight text-[#18181B] flex-1">
+                <span className="text-[22px] font-bold tracking-[-0.015em] text-[#18181B] flex-1">
                   Personal 😎
                 </span>
-                <span className="text-[11px] text-[#A1A1AA]">30px Bold</span>
+                <span className="text-[11.5px] text-[#71717A]">22px Bold</span>
               </div>
 
               <div className="py-3 flex items-baseline justify-between">
                 <span className="text-[11px] font-mono text-[#A1A1AA] w-36">Section Header</span>
-                <span className="text-[15px] font-bold text-[#18181B] flex-1">
+                <span className="text-[13.5px] font-semibold text-[#18181B] flex-1">
                   ∨ Skincare 4
                 </span>
-                <span className="text-[11px] text-[#A1A1AA]">15px Bold</span>
+                <span className="text-[11.5px] text-[#71717A]">13.5px Semibold</span>
               </div>
 
               <div className="py-3 flex items-baseline justify-between">
                 <span className="text-[11px] font-mono text-[#A1A1AA] w-36">Task Label</span>
-                <span className="text-[14px] font-medium text-[#18181B] flex-1">
+                <span className="text-[13.5px] font-medium text-[#18181B] flex-1">
                   Complete client call notes
                 </span>
-                <span className="text-[11px] text-[#A1A1AA]">14px Medium</span>
+                <span className="text-[11.5px] text-[#71717A]">13.5px Medium</span>
               </div>
 
               <div className="py-3 flex items-baseline justify-between">
-                <span className="text-[11px] font-mono text-[#A1A1AA] w-36">Metadata / Pill</span>
-                <span className="text-[11px] font-medium text-[#71717A] flex-1">
+                <span className="text-[11px] font-mono text-[#A1A1AA] w-36">Metadata / Subtitle</span>
+                <span className="text-[12px] font-normal text-[#71717A] flex-1">
                   Added: 1h ago · #Routine · November 8, 2024
                 </span>
-                <span className="text-[11px] text-[#A1A1AA]">11px Regular</span>
+                <span className="text-[11.5px] text-[#71717A]">12px Regular</span>
+              </div>
+
+              <div className="py-3 flex items-baseline justify-between">
+                <span className="text-[11px] font-mono text-[#A1A1AA] w-36">Micro / Properties</span>
+                <span className="text-[11.5px] font-semibold text-zinc-500 uppercase tracking-wider flex-1">
+                  Properties · Tags · Sub-tasks
+                </span>
+                <span className="text-[11.5px] text-[#71717A]">11.5px Uppercase</span>
               </div>
             </div>
           </section>

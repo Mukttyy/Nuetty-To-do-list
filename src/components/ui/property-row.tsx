@@ -17,11 +17,11 @@ export function PropertyRow({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 py-1.5 text-xs select-none",
+        "flex items-center justify-between gap-4 py-1.5 text-[12.5px] select-none",
         className
       )}
     >
-      <div className="flex items-center gap-1.5 w-24 shrink-0 text-[#71717A] font-normal">
+      <div className="flex items-center gap-1.5 w-24 shrink-0 text-[#71717A] text-[12.5px] font-normal">
         <span>{label}</span>
         {labelIcon}
       </div>

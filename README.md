@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nuetty — Everything To Do List
 
-## Getting Started
+Nuetty is a responsive full-stack task workspace built with Next.js 16, React 19, TypeScript, PostgreSQL, and Better Auth.
 
-First, run the development server:
+## What is implemented
+
+- Email/password accounts backed by server sessions.
+- Per-user tasks, custom projects and sections, subtasks, tags, priority, dates, and Trash stored in PostgreSQL.
+- Runtime payload validation, transactional writes, database constraints, and versioned SQL migrations.
+- Stable task ordering and revision-based conflict detection across tabs.
+- Responsive desktop/mobile UI with an off-canvas mobile navigation.
+- Date-derived Today and Upcoming views, plus Inbox, Anytime, Someday, Completed, and manually managed Trash.
+- New accounts start empty. Sample projects and tasks are seeded only into the environment-gated demo account.
+
+## Local development
+
+Requirements: Node.js 20.9 or newer, npm, and Docker with Compose.
 
 ```bash
+cp .env.example .env.local
+# Set a unique BETTER_AUTH_SECRET and keep the PostgreSQL credentials aligned with compose.yaml.
+npm install
+npm run db:setup
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open the local URL printed by Next.js (normally `http://localhost:3000`; it may select another port when that port is occupied). Development authentication accepts HTTP loopback origins on the active port. The component playground remains available at `/ui-kit`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+When `DEMO_MODE=true`, `db:setup` creates an idempotent prototype account:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```text
+Email: demo@nuetty.test
+Password: NuettyDemo!2026
+```
 
-## Learn More
+The demo endpoint and seed are disabled unless explicitly enabled, and the seed refuses to run in production.
 
-To learn more about Next.js, take a look at the following resources:
+Useful database commands:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:migrate
+npm run db:down
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`db:down` stops the local database container but retains its named volume. Real environment files remain ignored; `.env.test` contains only isolated, non-production test values.
 
-## Deploy on Vercel
+## Quality gates
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run lint
+npm run typecheck
+npm run test:e2e
+npm run build
+npm audit
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The Playwright suite resets only the dedicated `nuetty_test` database, applies every migration, seeds the prototype account, and verifies authentication, persistence, custom project/section creation, account isolation, conflict handling, relational validation, Quick Find routing, manual Trash deletion, and responsive behavior. The reset script refuses database names that do not end in `_test`.
+
+## Production boundary
+
+Before a public deployment, provide production-managed PostgreSQL, HTTPS URLs, a unique secret, backups, monitoring, and a tested recovery path. Email verification, password reset, reminders, and repeating tasks are not implemented yet. Current synchronization replaces one user's complete workspace atomically; revision checks stop stale tabs and require the user to choose the server or local copy.
+
+## Audit records
+
+- `docs/MASTER_AUDIT_PROTOCOL.md` defines the audit method and evidence rules.
+- `docs/AUDIT_REPORT.md` contains the current verified results and remaining risks.

@@ -1,106 +1,69 @@
-# PROJECT CONSTITUTION — NUETTY - TO DO LIST
+# PROJECT CONSTITUTION — NUETTY
 
-## Project
-- **Name**: nuetty - to do list
-- **Purpose**: Minimalist, distraction-free, ultra-clean productivity task management system with native desktop feel, 3-column layout, zero-latency interactions, and strict anti-AI-slop design.
-- **Reference**: Clean desktop web reference screens (Things 3 & Linear-Grade)
+## Product
 
-## Tech Stack
-- **Framework**: Next.js 15 (App Router)
-- **React**: React 19 / 18
-- **TypeScript**: Strict Mode enabled (`noImplicitAny: true`, strict null checks)
-- **Styling**: Tailwind CSS + CSS Semantic Custom Properties (Design Tokens)
-- **Component System**: Headless UI Primitives (Radix / CVA)
-- **Icon Library**: Lucide React + Native System Emojis
+- **Name**: Nuetty — Everything To Do List
+- **Purpose**: a quiet, responsive task manager with fast inline editing and durable, account-isolated server storage.
+- **Reference character**: Things 3 / Linear-grade desktop productivity, adapted for desktop and mobile web.
 
-## Design System (Observed & Calibrated from Reference)
-- **Color System**:
-  - `Surface Canvas`: `#FFFFFF` (Pure White)
-  - `Surface Sidebar`: `#F7F8FA` / `#F5F6F8` (Neutral Cool Light Gray)
-  - `Surface Active / Hover`: `#ECEEF1` / `#EAECEE`
-  - `Surface Inspector`: `#FFFFFF` with left border `#E5E7EB`
-  - `Text Primary`: `#18181B` (Zinc-900 / High Contrast)
-  - `Text Muted / Secondary`: `#71717A` (Zinc-500)
-  - `Text Subtle / Placeholder`: `#A1A1AA` (Zinc-400)
-  - `Border Subtle`: `#E4E4E7` / `#E5E7EB`
-  - `Functional Accents`:
-    - Today: `#10B981` (Emerald green, pill bg `#D1FAE5`, text `#065F46`)
-    - Upcoming: `#8B5CF6` (Purple, pill bg `#EDE9FE`, text `#5B21B6`)
-    - Someday: `#F59E0B` (Amber, pill bg `#FEF3C7`, text `#92400E`)
-    - Inbox / Primary Action: `#2563EB` (Blue, pill bg `#DBEAFE`, text `#1E40AF`)
-    - Overdue / Destructive: `#EF4444` (Rose red, pill bg `#FEE2E2`, text `#991B1B`)
-- **Typography**:
-  - Font: Inter / Geist Sans
-  - Heading 1 / List Display: 28px–32px Bold / ExtraBold
-  - Section Headers: 14px–15px Bold
-  - Task Row Title: 14px Medium
-  - Badges & Pills: 11px–12px Medium
-  - Body / Notes: 13px–14px Regular
-- **Geometry & Spacing**:
-  - Window Frame Radius: 16px–20px (`rounded-2xl`)
-  - Selection Pills & Task Cards: 10px–12px (`rounded-xl`)
-  - Checkboxes: 5px–6px (`rounded-md`)
-  - Detail Inspector Inputs: 8px (`rounded-lg`)
-  - Spacing scale: Strict 4px / 8px / 12px / 16px / 24px grid
-- **Shadows**:
-  - Flat base: `shadow-none` for docked elements
-  - Dragging / Elevated Card: `0 10px 25px -5px rgba(0, 0, 0, 0.08)`
-  - Dropdowns & Popovers: `0 8px 20px -4px rgba(0, 0, 0, 0.1)`
+## Approved technical baseline
 
-## UI Kit
-- **Status**: APPROVED & LOCKED
-- **Approved Date**: 2026-09-08 (by User)
-- **Version**: UI KIT v1.0
-- **Playground Route**: `/ui-kit` (Single Source of Truth)
+- **Application**: Next.js 16 App Router, React 19, strict TypeScript.
+- **Styling**: Tailwind CSS with semantic design tokens; Lucide icons and native emoji.
+- **Backend boundary**: same-origin Next.js Route Handlers.
+- **Identity**: Better Auth email/password accounts and cookie-backed server sessions.
+- **Database**: PostgreSQL 17 with versioned, checksum-protected SQL migrations.
+- **Validation**: Zod at the API boundary plus PostgreSQL constraints and foreign keys.
+- **Testing**: ESLint, TypeScript, Playwright browser flows, production build, and dependency audit.
 
-## Architecture
-- **Pattern**: Clean Layered Architecture (UI → Feature Hook → Service → Mock / API)
-- **Folder Structure**:
-  ```text
-  src/
-  ├── app/                  # Next.js App Router (Layouts, /ui-kit, app pages)
-  ├── components/
-  │   ├── ui/               # Pure UI Kit Primitives (Button, Checkbox, Badge, Input, Card, Modal, etc.)
-  │   ├── layout/           # App Shell (Sidebar, TaskList, TaskDetailsPanel)
-  │   └── features/         # Domain components (TaskRow, SubtaskList, RichNotesEditor, ActivityLog)
-  ├── lib/                  # Utilities (cn, date-utils, id-gen)
-  ├── services/             # TaskService, ProjectService (Backend-Ready abstraction)
-  ├── types/                # Strict domain types (Task, Project, Section, Tag, User)
-  └── docs/                 # Constitution, Decisions, Changelog
-  ```
-- **State Strategy**: Local-First Optimistic State (`useTasks`, `TaskStore`) with abstract storage layer.
-- **Backend Readiness**: Zero UI coupling with network layer.
+## Product invariants
 
-## Layout System (3-Column Architecture)
-1. **Column 1 — Navigation Sidebar (~240px)**:
-   - Window traffic lights
-   - User account switcher
-   - Quick find trigger
-   - Core Views (Inbox, Today, Upcoming, Someday, Trash)
-   - Project Lists with Emoji & Counter
-   - Workspace status & collapse button
-2. **Column 2 — Task Canvas (Flexible center)**:
-   - Header with dynamic title, count, and view controls (`Sort`, `Filter`)
-   - Inline task creation (`+ New task`)
-   - Grouped sections (by Section, by Date, or by Category)
-   - Task cards with reorder grip, checkbox, metadata tags, and quick actions
-3. **Column 3 — Task Details Inspector (~360px collapsible)**:
-   - Task title & metadata properties (Project, Due Date, Status, Assignee, Tags)
-   - Rich Notes Editor (B, I, U, List, Link)
-   - Interactive Sub-tasks Checklist
-   - Activity Log Timeline
-   - Bottom Action Bar (`Move Task to...` & `Close Details`)
+1. Every task query and mutation is authorized against the active server session.
+2. Task, subtask, and activity ownership remains bound to one database user.
+3. Multi-entity saves are atomic: the complete valid dataset commits or rolls back.
+4. Invalid or corrupt legacy browser data is surfaced and never silently overwritten.
+5. Browser storage is only a one-time migration source; PostgreSQL is authoritative.
+6. Controls must perform the action they advertise. Unimplemented controls remain disabled or absent.
+7. Mobile navigation must not reduce the main task canvas below a usable width.
+8. A stale client revision must never overwrite a newer server revision silently.
+9. Sign-out must wait for pending task writes or remain blocked with a visible error.
 
-## Anti-AI-Slop Rules
-- No gratuitous gradients or iridescent glassmorphism
-- No arbitrary non-token colors
-- No fake decorative AI metric cards
-- Strict 8px/4px layout rhythm
-- No cards inside cards inside cards without visual purpose
+## Current architecture
 
-## Gate Status
-- **Phase 0 Discovery**: COMPLETED
-- **Phase 1 Reference Analysis**: COMPLETED
-- **Phase 2 UI Kit Development**: READY TO START
-- **User Approval Gate**: HARD BLOCKED BEFORE APP PAGES
+```text
+Browser UI
+  ├─ Better Auth client ──> /api/auth/* ──> Better Auth ──> PostgreSQL
+  └─ task domain + sync hooks ─> /api/tasks ─> repository ─> PostgreSQL
 
+src/
+  app/                 App Router pages and API Route Handlers
+  components/auth/     Account entry UI
+  components/layout/   Responsive shell, navigation, top bar, command palette
+  components/views/    Task views
+  components/ui/       Reusable visual primitives
+  lib/                 Client state, auth client, validation, seed/migration data
+  server/              Server-only auth, database pool, task repository
+  types/               Domain types
+migrations/            Ordered SQL schema history
+scripts/               Migration, demo seed, and guarded test reset tools
+tests/e2e/             Critical browser regression suite
+```
+
+## Layout contract
+
+- **Desktop**: collapsible navigation sidebar plus flexible task canvas; the selected task expands inline so context is preserved.
+- **Mobile**: full-width task canvas plus off-canvas navigation and overlay.
+- **Notes**: stored and edited as plain text. No formatting affordance may be shown until a safe persisted document format and renderer are implemented.
+
+## Design rules
+
+- Neutral surfaces, high-contrast text, restrained semantic accents.
+- Strict 4/8 px spacing rhythm and purposeful hierarchy.
+- No gratuitous gradients, glassmorphism, fake metrics, or decorative controls.
+- Prototype entry is a restrained single-column form; decorative onboarding carousels and unverifiable trust claims are prohibited.
+- No claims of cloud readiness, recovery, or synchronization guarantees without evidence.
+
+## Delivery state
+
+- UI kit, responsive shell, views, command palette, filtering, task editing, authentication, PostgreSQL persistence, migrations, and the critical regression suite are implemented.
+- Public production deployment remains gated by managed infrastructure, email verification/recovery, observability, backup/restore testing, and deployed-environment validation.

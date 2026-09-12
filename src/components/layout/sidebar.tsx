@@ -1,197 +1,83 @@
 "use client";
 
 import * as React from "react";
-import { Avatar } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
+import { Archive, Calendar, CheckCircle2, ChevronsLeft, ChevronsRight, CircleDashed, Clock, Folder, Inbox, Plus, Search, Trash2, X } from "lucide-react";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { SidebarItem } from "@/components/ui/sidebar-item";
-import { Button } from "@/components/ui/button";
-import {
-  ChevronDown,
-  Search,
-  Inbox,
-  Calendar,
-  Clock,
-  Archive,
-  Trash2,
-  Plus,
-  ChevronsLeft,
-  Settings,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Project } from "@/types/task";
 
+interface Counts {
+  inbox?: number; today?: number; upcoming?: number; anytime?: number; someday?: number;
+  completed?: number; trash?: number; projects?: Record<string, number>;
+}
 export interface SidebarProps {
   activeView?: string;
   onSelectView?: (viewId: string) => void;
   className?: string;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  onOpenCommandPalette?: () => void;
+  isMobileOpen?: boolean;
+  counts?: Counts;
+  projects?: Project[];
+  onCreateProject?: (name: string) => void;
 }
 
-export function Sidebar({
-  activeView = "today",
-  onSelectView,
-  className,
-  isCollapsed = false,
-  onToggleCollapse,
-}: SidebarProps) {
-  const [isListExpanded, setIsListExpanded] = React.useState(true);
+export function Sidebar({ activeView = "today", onSelectView, className, isCollapsed = false, onToggleCollapse, onOpenCommandPalette, isMobileOpen = false, counts = {}, projects = [], onCreateProject }: SidebarProps) {
+  const [addingProject, setAddingProject] = React.useState(false);
+  const [projectName, setProjectName] = React.useState("");
+  const submitProject = () => {
+    const value = projectName.trim();
+    if (!value) return;
+    onCreateProject?.(value);
+    setProjectName("");
+    setAddingProject(false);
+  };
+  const nav = [
+    ["inbox", "Inbox", Inbox, "text-blue-600"],
+    ["today", "Today", Calendar, "text-emerald-600"],
+    ["upcoming", "Upcoming", Clock, "text-violet-600"],
+    ["anytime", "Anytime", CircleDashed, "text-zinc-500"],
+    ["someday", "Someday", Archive, "text-amber-600"],
+    ["completed", "Completed", CheckCircle2, "text-zinc-500"],
+    ["trash", "Trash", Trash2, "text-zinc-400"],
+  ] as const;
 
-  return (
-    <aside
-      className={cn(
-        "w-60 h-full border-r border-[#E5E7EB] bg-[#F7F8FA] flex flex-col justify-between shrink-0 select-none transition-all duration-200",
-        isCollapsed && "w-14 items-center",
-        className
-      )}
-    >
-      {/* Top Section */}
-      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
-        {/* Profile / Account Switcher */}
-        <div className="pt-5 px-4 pb-3 flex items-center justify-between shrink-0 cursor-pointer hover:opacity-85 transition-opacity">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Avatar initials="A" size="sm" />
-            {!isCollapsed && (
-              <span className="text-xs font-semibold text-[#18181B] truncate">
-                Abram Vaccaro
-              </span>
-            )}
-          </div>
-          {!isCollapsed && (
-            <ChevronDown className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-          )}
-        </div>
-
-        {/* Quick Find Search */}
-        {!isCollapsed && (
-          <div className="px-3 pb-3">
-            <Input
-              size="sm"
-              placeholder="Quick find"
-              leftIcon={<Search className="h-3.5 w-3.5" />}
-              rightAction={
-                <span className="text-[10px] font-mono text-[#A1A1AA] bg-[#F4F5F7] px-1 py-0.5 rounded border border-[#E5E7EB]">
-                  ⌘K
-                </span>
-              }
-            />
-          </div>
-        )}
-
-        {/* Core Navigation Views */}
-        <div className="px-2 space-y-0.5">
-          <SidebarItem
-            icon={<Inbox className="h-4 w-4 text-[#2563EB]" />}
-            label="Inbox"
-            active={activeView === "inbox"}
-            onClick={() => onSelectView?.("inbox")}
-          />
-          <SidebarItem
-            icon={<Calendar className="h-4 w-4 text-[#10B981]" />}
-            label="Today"
-            count={7}
-            active={activeView === "today"}
-            onClick={() => onSelectView?.("today")}
-          />
-          <SidebarItem
-            icon={<Clock className="h-4 w-4 text-[#8B5CF6]" />}
-            label="Upcoming"
-            count={3}
-            active={activeView === "upcoming"}
-            onClick={() => onSelectView?.("upcoming")}
-          />
-          <SidebarItem
-            icon={<Archive className="h-4 w-4 text-[#F59E0B]" />}
-            label="Someday"
-            count={5}
-            active={activeView === "someday"}
-            onClick={() => onSelectView?.("someday")}
-          />
-          <SidebarItem
-            icon={<Trash2 className="h-4 w-4 text-zinc-400" />}
-            label="Trash"
-            active={activeView === "trash"}
-            onClick={() => onSelectView?.("trash")}
-          />
-        </div>
-
-        {/* Projects / Lists Group */}
-        {!isCollapsed && (
-          <div className="mt-5 px-2 pt-3 border-t border-[#E5E7EB]/80">
-            {/* List Collapsible Header */}
-            <div
-              onClick={() => setIsListExpanded(!isListExpanded)}
-              className="flex items-center justify-between px-2 py-1 text-xs font-bold text-[#18181B] cursor-pointer hover:text-black transition-colors"
-            >
-              <div className="flex items-center gap-1">
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 text-zinc-400 transition-transform duration-150",
-                    !isListExpanded && "-rotate-90"
-                  )}
-                />
-                <span>List</span>
-              </div>
-            </div>
-
-            {/* Projects Items */}
-            {isListExpanded && (
-              <div className="space-y-0.5 mt-1">
-                <SidebarItem
-                  emoji="😎"
-                  label="Personal"
-                  count={7}
-                  active={activeView === "project-personal"}
-                  onClick={() => onSelectView?.("project-personal")}
-                />
-                <SidebarItem
-                  emoji="🎯"
-                  label="Work"
-                  count={4}
-                  active={activeView === "project-work"}
-                  onClick={() => onSelectView?.("project-work")}
-                />
-                <div className="pt-1 px-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-xs font-medium text-[#2563EB] hover:text-blue-700 hover:bg-blue-50/60"
-                    leftIcon={<Plus className="h-3.5 w-3.5 text-[#2563EB]" />}
-                  >
-                    Add Project
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+  return <aside aria-label="Primary navigation" className={cn("fixed inset-y-0 left-0 z-50 flex h-full w-60 -translate-x-full flex-col border-r border-zinc-200 bg-[#F7F8FA] transition-all md:static md:translate-x-0", isMobileOpen && "translate-x-0", isCollapsed && "md:w-14", className)}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className={cn("flex items-center pt-4 pb-2.5", isCollapsed ? "flex-col gap-2 px-2" : "justify-between px-3.5")}>
+        <div className="flex items-center gap-2"><BrandMark size={24} />{!isCollapsed && <span className="text-sm font-bold tracking-tight">Nuetty</span>}</div>
+        <button type="button" onClick={onToggleCollapse} className="hidden h-7 w-7 items-center justify-center rounded text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800 md:inline-flex" aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{isCollapsed ? <ChevronsRight className="h-3.5 w-3.5" /> : <ChevronsLeft className="h-3.5 w-3.5" />}</button>
       </div>
 
-      {/* Bottom Footer Section */}
-      <div className="p-3 border-t border-[#E5E7EB] flex items-center justify-between text-xs text-[#71717A] shrink-0">
-        {!isCollapsed ? (
-          <div className="flex items-center gap-1 text-[11px] text-[#71717A] truncate">
-            <span>Workspace: Personal</span>
-            <span className="opacity-40">|</span>
-            <button
-              type="button"
-              className="hover:text-[#18181B] inline-flex items-center gap-1 transition-colors"
-            >
-              <Settings className="h-3 w-3" />
-              <span>Settings</span>
-            </button>
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className="h-6 w-6 inline-flex items-center justify-center rounded text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/60 transition-colors"
-          title="Collapse sidebar"
-        >
-          <ChevronsLeft className="h-3.5 w-3.5" />
+      <div className="px-2 pb-3">
+        <button type="button" onClick={onOpenCommandPalette} className={cn("flex h-8 w-full items-center rounded-md text-xs text-zinc-500 hover:bg-zinc-200/70", isCollapsed ? "justify-center" : "gap-2 border border-zinc-200 bg-white px-2.5")} aria-label="Quick find">
+          <Search className="h-4 w-4" />{!isCollapsed && <><span className="flex-1 text-left">Quick find</span><kbd className="text-[10px] text-zinc-400">⌘K</kbd></>}
         </button>
       </div>
-    </aside>
-  );
-}
 
+      <nav className="space-y-0.5 px-2">
+        {nav.map(([id, label, Icon, color]) => <SidebarItem key={id} icon={<Icon className={cn("h-4 w-4", color)} />} label={label} count={counts[id]} active={activeView === id} onClick={() => onSelectView?.(id)} compact={isCollapsed} />)}
+      </nav>
+
+      <div className="mt-5 border-t border-zinc-200 px-2 pt-3">
+        {!isCollapsed && <div className="mb-1 flex items-center justify-between px-2">
+          <span className="text-xs font-semibold text-zinc-600">Projects</span>
+          <button type="button" onClick={() => setAddingProject(true)} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700" aria-label="Create project"><Plus className="h-3.5 w-3.5" /></button>
+        </div>}
+        {addingProject && !isCollapsed && <div className="mb-2 flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2">
+          <input autoFocus value={projectName} onChange={(event) => setProjectName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submitProject(); if (event.key === "Escape") setAddingProject(false); }} placeholder="Project name" aria-label="Project name" className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none" />
+          <button type="button" onClick={() => setAddingProject(false)} aria-label="Cancel project"><X className="h-3.5 w-3.5 text-zinc-400" /></button>
+        </div>}
+        <div className="space-y-0.5">
+          {projects.filter((project) => !project.archived).map((project) => <SidebarItem key={project.id} icon={<Folder className="h-4 w-4" style={{ color: project.color }} />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} compact={isCollapsed} />)}
+          {!isCollapsed && projects.some((project) => project.archived) && <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Archived</p>}
+          {!isCollapsed && projects.filter((project) => project.archived).map((project) => <SidebarItem key={project.id} icon={<Archive className="h-4 w-4 text-zinc-400" />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} />)}
+          {projects.length === 0 && !isCollapsed && <p className="px-2 py-2 text-[11px] leading-4 text-zinc-400">Create a project when a task needs a home.</p>}
+          {isCollapsed && <button type="button" onClick={() => setAddingProject(true)} className="flex h-8 w-full items-center justify-center rounded text-zinc-500 hover:bg-zinc-200" aria-label="Create project"><Plus className="h-4 w-4" /></button>}
+        </div>
+      </div>
+    </div>
+  </aside>;
+}

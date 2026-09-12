@@ -8,17 +8,17 @@ export const badgeVariants = cva(
     variants: {
       variant: {
         today:
-          "bg-emerald-100/80 text-emerald-800 border-emerald-200/60",
+          "bg-zinc-50 text-zinc-600 border-zinc-200",
         tomorrow:
-          "bg-zinc-100 text-zinc-700 border-zinc-200/80",
+          "bg-zinc-50 text-zinc-600 border-zinc-200",
         upcoming:
-          "bg-purple-100/80 text-purple-800 border-purple-200/60",
+          "bg-zinc-50 text-zinc-600 border-zinc-200",
         someday:
-          "bg-amber-100/80 text-amber-900 border-amber-200/60",
+          "bg-zinc-50 text-zinc-600 border-zinc-200",
         overdue:
           "bg-rose-100 text-rose-800 border-rose-200/60 font-semibold",
         inbox:
-          "bg-blue-100/80 text-blue-800 border-blue-200/60",
+          "bg-zinc-50 text-zinc-600 border-zinc-200",
         tag:
           "bg-zinc-100/90 text-zinc-700 border-zinc-200/70 hover:bg-zinc-200/70 cursor-default",
         counter:
@@ -62,4 +62,3 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
 );
 
 Badge.displayName = "Badge";
-

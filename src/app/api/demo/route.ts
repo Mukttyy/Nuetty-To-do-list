@@ -5,7 +5,10 @@ export async function GET() {
     process.env.NODE_ENV === "production" ||
     process.env.DEMO_MODE !== "true"
   ) {
-    return Response.json({ error: "Not found" }, { status: 404 });
+    return Response.json(
+      {},
+      { headers: { "Cache-Control": "no-store" } }
+    );
   }
 
   const email = process.env.DEMO_EMAIL;

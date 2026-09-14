@@ -9,6 +9,7 @@ const sectionSchema = z.object({
 export const projectSchema = z.object({
   id: z.string().min(1).max(200),
   name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(280).optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   icon: z.string().max(50).optional(),
   archived: z.boolean(),

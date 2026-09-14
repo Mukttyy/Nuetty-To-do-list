@@ -13,6 +13,7 @@ async function selectProjects(client: PoolClient, userId: string): Promise<Proje
     `SELECT jsonb_build_object(
       'id', p.id,
       'name', p.name,
+      'description', p.description,
       'color', p.color,
       'icon', p.icon,
       'archived', p.archived,
@@ -270,13 +271,14 @@ export async function saveTaskCollection(
 
     for (const project of projects) {
       await client.query(
-        `INSERT INTO projects (id, user_id, name, color, icon, archived, position)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO projects (id, user_id, name, description, color, icon, archived, position)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (id, user_id) DO UPDATE SET
-           name = EXCLUDED.name, color = EXCLUDED.color, icon = EXCLUDED.icon,
+           name = EXCLUDED.name, description = EXCLUDED.description,
+           color = EXCLUDED.color, icon = EXCLUDED.icon,
            archived = EXCLUDED.archived, position = EXCLUDED.position,
            updated_at = CURRENT_TIMESTAMP`,
-        [project.id, userId, project.name, project.color, project.icon ?? null, project.archived, project.position]
+        [project.id, userId, project.name, project.description ?? null, project.color, project.icon ?? null, project.archived, project.position]
       );
       for (const section of project.sections) {
         await client.query(

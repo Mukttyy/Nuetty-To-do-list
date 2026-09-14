@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Archive, Calendar, CheckCircle2, ChevronsLeft, ChevronsRight, CircleDashed, Clock, Folder, Inbox, Plus, Search, Trash2, X } from "lucide-react";
+import { Archive, Calendar, CheckCircle2, ChevronsLeft, ChevronsRight, CircleDashed, Clock, Inbox, Plus, Search, Trash2, X } from "lucide-react";
 import { BrandMark } from "@/components/ui/brand-mark";
+import { ProjectIcon } from "@/components/ui/project-icon";
 import { SidebarItem } from "@/components/ui/sidebar-item";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/types/task";
@@ -71,7 +72,7 @@ export function Sidebar({ activeView = "today", onSelectView, className, isColla
           <button type="button" onClick={() => setAddingProject(false)} aria-label="Cancel project"><X className="h-3.5 w-3.5 text-zinc-400" /></button>
         </div>}
         <div className="space-y-0.5">
-          {projects.filter((project) => !project.archived).map((project) => <SidebarItem key={project.id} icon={<Folder className="h-4 w-4" style={{ color: project.color }} />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} compact={isCollapsed} />)}
+          {projects.filter((project) => !project.archived).map((project) => <SidebarItem key={project.id} icon={<ProjectIcon name={project.icon} className="h-4 w-4" style={{ color: project.color }} />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} compact={isCollapsed} />)}
           {!isCollapsed && projects.some((project) => project.archived) && <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Archived</p>}
           {!isCollapsed && projects.filter((project) => project.archived).map((project) => <SidebarItem key={project.id} icon={<Archive className="h-4 w-4 text-zinc-400" />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} />)}
           {projects.length === 0 && !isCollapsed && <p className="px-2 py-2 text-[11px] leading-4 text-zinc-400">Create a project when a task needs a home.</p>}

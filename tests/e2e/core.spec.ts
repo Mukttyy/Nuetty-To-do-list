@@ -90,12 +90,20 @@ test("creates custom projects and sections and files tasks contextually", async 
   await renameSectionSave;
   await expect(page.getByText("Execution", { exact: true })).toBeVisible();
 
-  page.once("dialog", (dialog) => dialog.accept("Delivery Ops"));
-  const renameProjectSave = waitForSave(page, "Delivery Ops");
   await page.getByRole("button", { name: "Project options" }).click();
-  await page.getByRole("button", { name: "Rename project" }).click();
+  await page.getByRole("button", { name: "Edit project" }).click();
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("Delivery Ops");
+  await page.getByLabel("Description").fill("Client delivery work and handoffs.");
+  await page.getByRole("button", { name: "Goal" }).click();
+  await page.getByRole("button", { name: "Use color #2563EB" }).click();
+  const renameProjectSave = waitForSave(page, "Delivery Ops");
+  await page.getByRole("button", { name: "Save changes" }).click();
   await renameProjectSave;
   await expect(page.getByRole("heading", { name: "Delivery Ops" })).toBeVisible();
+  await expect(page.getByText("Client delivery work and handoffs.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Delivery Ops" })).toBeVisible();
+  await expect(page.getByText("Client delivery work and handoffs.")).toBeVisible();
 
   const archiveSave = waitForSave(page, '"archived":true');
   await page.getByRole("button", { name: "Project options" }).click();

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { playCompleteSound } from "@/lib/sound";
 import { useTaskSync } from "@/lib/use-task-sync";
-import type { ActivityEntry, Subtask, Task, TaskPriority, TaskSchedule, TaskStatus } from "@/types/task";
+import type { ActivityEntry, Project, Subtask, Task, TaskPriority, TaskSchedule, TaskStatus } from "@/types/task";
 
 export type { TaskSyncStatus } from "@/lib/use-task-sync";
 
@@ -215,14 +215,20 @@ export function useTasks(actorName = "Current user") {
     const cleanName = name.trim();
     if (!cleanName || projects.some((project) => project.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return;
     mutateProjects((current) => [...current, {
-      id: createEntityId("project"), name: cleanName, color: "#52525B", archived: false,
+      id: createEntityId("project"), name: cleanName, color: "#52525B", icon: "folder", archived: false,
       position: current.length, sections: [],
     }]);
   }, [mutateProjects, projects]);
-  const renameProject = React.useCallback((id: string, name: string) => {
-    const cleanName = name.trim();
+  const updateProject = React.useCallback((id: string, changes: Pick<Project, "name" | "description" | "color" | "icon">) => {
+    const cleanName = changes.name.trim();
     if (!cleanName || projects.some((project) => project.id !== id && project.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return;
-    mutateProjects((current) => current.map((project) => project.id === id ? { ...project, name: cleanName } : project));
+    mutateProjects((current) => current.map((project) => project.id === id ? {
+      ...project,
+      name: cleanName,
+      description: changes.description?.trim() || undefined,
+      color: changes.color,
+      icon: changes.icon,
+    } : project));
   }, [mutateProjects, projects]);
   const archiveProject = React.useCallback((id: string) => {
     mutateProjects((current) => current.map((project) => project.id === id ? { ...project, archived: !project.archived } : project));
@@ -262,6 +268,6 @@ export function useTasks(actorName = "Current user") {
     updateTaskNotes, updateTaskSchedule, updateTaskDueDate, updateTaskPriority, updateTaskSection,
     toggleSubtask, addSubtask, deleteSubtask, addTag, removeTag, createTask, deleteTask,
     restoreTask, undoDelete, permanentlyDeleteTask, emptyTrash, moveTaskProject, createProject,
-    renameProject, archiveProject, deleteProject, addSection, renameSection, deleteSection,
+    updateProject, archiveProject, deleteProject, addSection, renameSection, deleteSection,
   };
 }

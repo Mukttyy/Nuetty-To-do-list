@@ -127,10 +127,13 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
 
       {project.sections.map((section) => {
         const sectionTasks = visibleTasks.filter((task) => task.sectionId === section.id);
-        const isOpen = openSections[section.id] ?? true;
+        const isOpen = sectionTasks.some(task => task.id === actions.selectedTaskId) || (openSections[section.id] ?? true);
         return <section key={section.id} className="space-y-1">
           <div className="group flex items-center gap-1">
-            <SectionHeader title={section.name} count={sectionTasks.length} isOpen={isOpen} onToggle={() => setOpenSections((current) => ({ ...current, [section.id]: !isOpen }))} onAdd={() => { setCreatingSectionId(section.id); setOpenSections((current) => ({ ...current, [section.id]: true })); }} />
+            <SectionHeader title={section.name} count={sectionTasks.length} isOpen={isOpen} onToggle={() => {
+              if (isOpen && sectionTasks.some(task => task.id === actions.selectedTaskId)) actions.onCloseExpand();
+              setOpenSections(current => ({ ...current, [section.id]: !isOpen }));
+            }} onAdd={() => { setCreatingSectionId(section.id); setOpenSections((current) => ({ ...current, [section.id]: true })); }} />
             <button type="button" onClick={() => openSectionEditor(section)} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Rename ${section.name}`}><Pencil className="h-3 w-3" /></button>
             <button type="button" onClick={() => setDeleteTarget({ kind: "section", id: section.id, name: section.name })} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Delete ${section.name}`}><Trash2 className="h-3 w-3" /></button>
           </div>

@@ -123,6 +123,34 @@ test("failed saves show Retry and saved feedback expires without deleting tasks"
   await expect(page.getByLabel("Task title")).toHaveValue("Retry feedback task");
 });
 
+test("finds empty and archived projects and recovers from an unavailable view", async ({ page }) => {
+  await createAccount(page);
+  await page.getByRole("button", { name: "Create project", exact: true }).click();
+  await page.getByLabel("Project name").fill("Empty Research");
+  const saved = waitForSave(page, "Empty Research");
+  await page.getByLabel("Project name").press("Enter");
+  await saved;
+  await page.keyboard.press("Control+k");
+  const search = page.getByRole("combobox", { name: "Search tasks, tags, or projects" });
+  await search.fill("Empty Research");
+  await expect(page.getByRole("option", { name: "Empty Research Project", exact: true })).toBeVisible();
+  await search.press("ArrowDown");
+  await search.press("Enter");
+  await expect(page.getByRole("heading", { name: "Empty Research", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Project options" }).click();
+  const archived = waitForSave(page, '"archived":true');
+  await page.getByRole("button", { name: "Archive project", exact: true }).click();
+  await archived;
+  await page.keyboard.press("Control+k");
+  await search.fill("Empty Research");
+  await page.getByRole("option", { name: /Empty Research Project · Archived/ }).click();
+  await expect(page.getByRole("heading", { name: "Empty Research", exact: true })).toBeVisible();
+  await page.goto("/?view=project:missing");
+  await expect(page.getByText("This view is unavailable", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Go to Inbox", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
+});
+
 test("reports database health and rejects anonymous task access", async ({ request }) => {
   const health = await request.get("/api/health");
   expect(health.ok()).toBe(true);

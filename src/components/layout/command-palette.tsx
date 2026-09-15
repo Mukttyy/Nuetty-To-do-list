@@ -1,290 +1,77 @@
 "use client";
 
 import * as React from "react";
-import {
-  Search,
-  X,
-  Calendar,
-  Clock,
-  Archive,
-  Check,
-  Folder,
-  CircleDashed,
-} from "lucide-react";
+import { Dialog } from "@/components/ui/dialog";
+import { ProjectIcon } from "@/components/ui/project-icon";
 import type { Project, Task } from "@/types/task";
 import { localDateKey, taskSchedule } from "@/lib/use-tasks";
-import { cn } from "@/lib/utils";
 
 export interface CommandPaletteProps {
-  isOpen: boolean;
-  onClose: () => void;
-  tasks: Task[];
-  projects: Project[];
-  onSelectTask: (task: Task) => void;
+  isOpen: boolean; onClose: () => void; tasks: Task[]; projects: Project[];
+  onSelectTask: (task: Task) => void; onSelectProject: (project: Project) => void;
 }
+type Result = { kind: "project"; project: Project; id: string } | { kind: "task"; task: Task; id: string };
 
-type CommandPaletteDialogProps = Omit<CommandPaletteProps, "isOpen">;
-
-function CommandPaletteDialog({
-  onClose,
-  tasks,
-  projects,
-  onSelectTask,
-}: CommandPaletteDialogProps) {
+function SearchDialog({ onClose, tasks, projects, onSelectTask, onSelectProject }: Omit<CommandPaletteProps, "isOpen">) {
   const [query, setQuery] = React.useState("");
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const [index, setIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const dialogRef = React.useRef<HTMLDivElement>(null);
-  const titleId = React.useId();
-  const listboxId = React.useId();
-
-  // Filter tasks matching query
-  const filteredTasks = React.useMemo(() => {
-    if (!query.trim()) {
-      // Show first 8 active tasks
-      return tasks.filter((t) => !t.isDeleted).slice(0, 8);
-    }
-    const q = query.toLowerCase().trim();
-    return tasks
-      .filter(
-        (t) =>
-          !t.isDeleted &&
-          (t.title.toLowerCase().includes(q) ||
-            t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-            t.notes.toLowerCase().includes(q) ||
-            projects.find((project) => project.id === t.projectId)?.name.toLowerCase().includes(q))
-      )
-      .slice(0, 10);
+  const listId = React.useId();
+  const results = React.useMemo<Result[]>(() => {
+    const q = query.trim().toLowerCase();
+    const projectResults: Result[] = projects.filter(project => !q ? !project.archived : project.name.toLowerCase().includes(q) || project.description?.toLowerCase().includes(q))
+      .slice(0, 10).map(project => ({ kind: "project", project, id: `project-${project.id}` }));
+    const taskResults: Result[] = tasks.filter(task => {
+      if (task.isDeleted) return false;
+      if (!q) return !task.completed;
+      const project = projects.find(project => project.id === task.projectId);
+      const section = project?.sections.find(section => section.id === task.sectionId);
+      return [task.title, task.notes, ...task.tags, project?.name, section?.name].some(text => text?.toLowerCase().includes(q));
+    }).slice(0, 10).map(task => ({ kind: "task", task, id: `task-${task.id}` }));
+    return [...projectResults, ...taskResults];
   }, [projects, tasks, query]);
-
-  // Focus the search field after the dialog enters the document.
+  const selected = Math.min(index, Math.max(0, results.length - 1));
   React.useEffect(() => {
-    const previouslyFocused = document.activeElement;
-    const frame = requestAnimationFrame(() => inputRef.current?.focus());
-    return () => {
-      cancelAnimationFrame(frame);
-      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
-        previouslyFocused.focus();
+    const result = results[selected];
+    if (result) document.getElementById(`${listId}-${result.id}`)?.scrollIntoView({ block: "nearest" });
+  }, [results, selected, listId]);
+  const choose = (result: Result) => {
+    if (result.kind === "project") onSelectProject(result.project);
+    else onSelectTask(result.task);
+    onClose();
+  };
+  return <Dialog open title="Quick find" onClose={onClose} initialFocusRef={inputRef} className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+    <input ref={inputRef} role="combobox" aria-label="Search tasks, tags, or projects" aria-controls={listId} aria-expanded="true" aria-autocomplete="list" aria-activedescendant={results[selected] ? `${listId}-${results[selected].id}` : undefined} value={query} onChange={event => { setQuery(event.target.value); setIndex(0); }} placeholder="Quick find tasks, tags, or projects..." className="mt-3 h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" onKeyDown={event => {
+      if (event.nativeEvent.isComposing) return;
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        if (results.length) setIndex((selected + (event.key === "ArrowDown" ? 1 : -1) + results.length) % results.length);
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (results[selected]) choose(results[selected]);
       }
-    };
-  }, []);
-
-  const selectTask = React.useCallback(
-    (task: Task) => {
-      onSelectTask(task);
-      onClose();
-    },
-    [onClose, onSelectTask]
-  );
-
-  // Keyboard navigation inside palette
-  React.useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < filteredTasks.length - 1 ? prev + 1 : 0
-        );
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : Math.max(filteredTasks.length - 1, 0)
-        );
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        const selected = filteredTasks[selectedIndex];
-        if (selected) selectTask(selected);
-      } else if (e.key === "Tab") {
-        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-          'input:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        );
-        if (!focusable?.length) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [filteredTasks, selectedIndex, onClose, selectTask]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-start justify-center pt-24 px-4 select-none animate-in fade-in-0 duration-150"
-      onClick={onClose}
-    >
-      <div
-        ref={dialogRef}
-        className="w-full max-w-xl rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id={titleId} className="sr-only">
-          Find a task
-        </h2>
-        {/* Search Header */}
-        <div className="flex items-center gap-3 px-4 border-b border-[#E5E7EB]">
-          <Search className="h-4 w-4 text-zinc-400 shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
-            placeholder="Quick find tasks, tags, or projects..."
-            aria-label="Search tasks, tags, or projects"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded="true"
-            aria-controls={listboxId}
-            aria-activedescendant={
-              filteredTasks[selectedIndex]
-                ? `${listboxId}-option-${filteredTasks[selectedIndex].id}`
-                : undefined
-            }
-            className="flex-1 py-3.5 bg-transparent text-sm text-[#18181B] placeholder:text-zinc-400 focus:outline-none"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="p-1 rounded text-zinc-400 hover:text-zinc-700"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <span className="text-[10px] font-mono text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200">
-            ESC
+    }} />
+    <div id={listId} role="listbox" aria-label="Tasks and projects" className="mt-3 max-h-[45dvh] space-y-1 overflow-y-auto">
+      {results.map((result, i) => {
+        const project = result.kind === "project" ? result.project : projects.find(project => project.id === result.task.projectId);
+        const task = result.kind === "task" ? result.task : undefined;
+        const section = project?.sections.find(section => section.id === task?.sectionId);
+        const today = localDateKey();
+        const state = task ? task.completed ? "Completed" : task.dueDate ? task.dueDate < today ? `Overdue · ${task.dueDate}` : task.dueDate === today ? "Today" : task.dueDate : taskSchedule(task) : project?.archived ? "Archived" : "";
+        return <button key={result.id} id={`${listId}-${result.id}`} type="button" role="option" aria-selected={selected === i} onClick={() => choose(result)} onFocus={() => setIndex(i)} className={`flex min-h-12 w-full items-start gap-2 rounded-lg px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${selected === i ? "bg-zinc-100" : "hover:bg-zinc-50"}`}>
+          <ProjectIcon name={project?.icon} style={{ color: project?.color }} className="mt-0.5 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className={`block truncate text-sm ${task?.completed ? "text-zinc-500 line-through" : "text-zinc-900"}`}>{task?.title ?? project?.name}</span>
+            <span className="block truncate text-xs text-zinc-500">{task ? `Task · ${project?.name ?? "No project"}${section ? ` / ${section.name}` : ""}` : "Project"}{state ? ` · ${state}` : ""}</span>
           </span>
-        </div>
-
-        {/* Results List */}
-        <div
-          id={listboxId}
-          role="listbox"
-          aria-label="Task results"
-          className="max-h-80 overflow-y-auto p-2 space-y-0.5"
-        >
-          {filteredTasks.length > 0 ? (
-            filteredTasks.map((task, index) => {
-              const isSelected = index === selectedIndex;
-              return (
-                <button
-                  key={task.id}
-                  id={`${listboxId}-option-${task.id}`}
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => selectTask(task)}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  className={cn(
-                    "flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer",
-                    isSelected
-                      ? "bg-zinc-100/90 text-[#18181B] ring-1 ring-zinc-200/70"
-                      : "text-zinc-600 hover:bg-zinc-50"
-                  )}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="shrink-0 text-zinc-500">
-                      {task.projectId ? (
-                        <Folder className="h-3.5 w-3.5" />
-                      ) : (
-                        <CircleDashed className="h-3.5 w-3.5" />
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        "font-medium truncate",
-                        task.completed && "line-through text-zinc-400 font-normal"
-                      )}
-                    >
-                      {task.title}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {task.dueDate && task.dueDate <= localDateKey() && !task.completed && (
-                      <span className="flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[11px] font-medium text-zinc-600">
-                        <Calendar className="h-3 w-3" />
-                        Today
-                      </span>
-                    )}
-                    {task.dueDate && task.dueDate > localDateKey() && !task.completed && (
-                      <span className="flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[11px] font-medium text-zinc-600">
-                        <Clock className="h-3 w-3" />
-                        Upcoming
-                      </span>
-                    )}
-                    {taskSchedule(task) === "someday" && !task.completed && (
-                      <span className="flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[11px] font-medium text-zinc-600">
-                        <Archive className="h-3 w-3" />
-                        Someday
-                      </span>
-                    )}
-                    <span className="text-[11px] text-zinc-400 font-normal">
-                      {projects.find((project) => project.id === task.projectId)?.name || "No project"}
-                    </span>
-                    {isSelected && (
-                      <Check className="h-3.5 w-3.5 text-zinc-700" />
-                    )}
-                  </div>
-                </button>
-              );
-            })
-          ) : (
-            <div className="py-8 text-center text-xs text-zinc-400">
-              No tasks found matching &quot;{query}&quot;
-            </div>
-          )}
-        </div>
-
-        {/* Footer Shortcut Hints */}
-        <div className="px-4 py-2 bg-[#F9FAFB] border-t border-[#E5E7EB] flex items-center justify-between text-[11px] text-zinc-400">
-          <div className="flex items-center gap-3">
-            <span>
-              <kbd className="font-mono bg-white border border-zinc-200 px-1 py-0.5 rounded text-[10px] text-zinc-600">
-                ↑
-              </kbd>{" "}
-              <kbd className="font-mono bg-white border border-zinc-200 px-1 py-0.5 rounded text-[10px] text-zinc-600">
-                ↓
-              </kbd>{" "}
-              navigate
-            </span>
-            <span>
-              <kbd className="font-mono bg-white border border-zinc-200 px-1 py-0.5 rounded text-[10px] text-zinc-600">
-                ↵
-              </kbd>{" "}
-              open
-            </span>
-          </div>
-          <span>
-            <kbd className="font-mono bg-white border border-zinc-200 px-1 py-0.5 rounded text-[10px] text-zinc-600">
-              esc
-            </kbd>{" "}
-            dismiss
-          </span>
-        </div>
-      </div>
+        </button>;
+      })}
     </div>
-  );
+    {results.length === 0 && <p role="status" className="py-6 text-center text-sm text-zinc-500">{query.trim() ? "No tasks or projects found." : "Your workspace is empty."}</p>}
+    <p className="mt-3 text-xs text-zinc-500">↑ ↓ Navigate · Enter Open · Esc Close</p>
+  </Dialog>;
 }
 
-export function CommandPalette({ isOpen, ...dialogProps }: CommandPaletteProps) {
-  if (!isOpen) return null;
-  return <CommandPaletteDialog {...dialogProps} />;
+export function CommandPalette({ isOpen, ...props }: CommandPaletteProps) {
+  return isOpen ? <SearchDialog {...props} /> : null;
 }

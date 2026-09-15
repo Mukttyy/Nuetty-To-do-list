@@ -170,10 +170,13 @@ function TaskDashboard() {
       {listView && <TaskListView {...commonActions} title={listView.title} description={listView.description} icon={listView.icon} tasks={listView.tasks} emptyTitle={listView.emptyTitle} emptyDescription={listView.emptyDescription} allowCreate={activeView !== "completed"} createPlaceholder={listView.placeholder} onAddTask={(title) => taskState.createTask(title, listView.options)} />}
       {activeProject && <ProjectView {...commonActions} project={activeProject} tasks={projectTasks} onAddTask={(title, sectionId) => taskState.createTask(title, { schedule: "anytime", projectId: activeProject.id, sectionId })} onUpdateProject={(changes) => taskState.updateProject(activeProject.id, changes)} onArchiveProject={() => { taskState.archiveProject(activeProject.id); if (!activeProject.archived) setActiveView("inbox"); }} onDeleteProject={() => { taskState.deleteProject(activeProject.id); setActiveView("inbox"); }} onAddSection={(name) => taskState.addSection(activeProject.id, name)} onRenameSection={(sectionId, name) => taskState.renameSection(activeProject.id, sectionId, name)} onDeleteSection={(sectionId) => taskState.deleteSection(activeProject.id, sectionId)} />}
       {activeView === "trash" && <TrashView tasks={trashTasks} projects={projects} onRestoreTask={taskState.restoreTask} onPermanentlyDeleteTask={taskState.permanentlyDeleteTask} onEmptyTrash={taskState.emptyTrash} />}
-      {!listView && !activeProject && activeView !== "trash" && <TaskListView {...commonActions} title="Not found" icon={<CircleDashed className="h-4 w-4" />} tasks={[]} emptyTitle="This view is unavailable" emptyDescription="Choose a view from the sidebar." allowCreate={false} />}
+      {!listView && !activeProject && activeView !== "trash" && <div>
+        <TaskListView {...commonActions} title="Not found" icon={<CircleDashed className="h-4 w-4" />} tasks={[]} emptyTitle="This view is unavailable" emptyDescription="The project may have been removed or belong to another account. Your other tasks are still available." allowCreate={false} />
+        <div className="text-center"><button type="button" onClick={() => setActiveView("inbox")} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white">Go to Inbox</button></div>
+      </div>}
     </AppShell>
 
-    <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} tasks={tasks} projects={projects} onSelectTask={openSearchResult} />
+    <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} tasks={tasks} projects={projects} onSelectTask={openSearchResult} onSelectProject={project => setActiveView(`project:${project.id}`)} />
     {taskState.notification && !taskState.syncError && <TaskNotice key={taskState.notification.id} notice={taskState.notification} status={taskState.syncStatus} onDismiss={taskState.dismissNotification} onUndo={taskState.undoDelete} onView={tasks.some(task => task.id === taskState.notification?.taskId) ? () => {
       const task = tasks.find(task => task.id === taskState.notification?.taskId);
       if (task) openSearchResult(task);

@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-test("preserves login fields while checking session after returning to a tab", async ({ page }) => {
+test("preserves login fields while checking session after reconnecting", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("heading", { name: "Sign in to Nuetty" }).waitFor();
   await page.getByLabel("Email").fill("tab-check@example.test");
@@ -14,7 +14,7 @@ test("preserves login fields while checking session after returning to a tab", a
     await gate;
     await route.continue();
   });
-  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await requested;
   try {
     await expect(page.getByLabel("Email")).toHaveValue("tab-check@example.test");
@@ -23,6 +23,27 @@ test("preserves login fields while checking session after returning to a tab", a
     release();
   }
   await expect(page.getByLabel("Email")).toHaveValue("tab-check@example.test");
+});
+
+test("returning to the browser does not request a session or reset the form", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("heading", { name: "Sign in to Nuetty" }).waitFor();
+  await page.getByLabel("Email").fill("focus@example.test");
+  await page.getByLabel("Password", { exact: true }).fill("Focus-test-2026!");
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/get-session")) requests.push(request.url());
+  });
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await page.waitForTimeout(700);
+  expect(requests).toEqual([]);
+  await expect(page.getByLabel("Email")).toHaveValue("focus@example.test");
+  await expect(page.getByLabel("Password", { exact: true })).toHaveValue("Focus-test-2026!");
 });
 
 async function createAccount(page: Page, name = "Audit User") {

@@ -36,7 +36,9 @@ test("keeps sample content exclusive to the demo account", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("Nuetty — Everything To Do List");
   await page.getByRole("button", { name: "Use demo" }).click();
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.locator("form").evaluate((form: HTMLFormElement) => form.requestSubmit());
+  await expect(page.getByRole("heading", { name: "Sign in to Nuetty" })).toBeVisible();
+  await page.getByLabel("Password", { exact: true }).press("Enter");
   await expect(page.getByRole("button", { name: /Personal/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Work/ })).toBeVisible();
 

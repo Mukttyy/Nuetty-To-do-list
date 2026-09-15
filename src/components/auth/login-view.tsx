@@ -35,8 +35,8 @@ export function LoginView() {
     return () => controller.abort();
   }, []);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
     setError(null);
 
     const cleanEmail = email.trim().toLowerCase();
@@ -60,6 +60,12 @@ export function LoginView() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleExplicitEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    void handleSubmit();
   };
 
   const fillDemoCredentials = () => {
@@ -140,7 +146,7 @@ export function LoginView() {
             </p>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
+          <form onSubmit={(event) => event.preventDefault()} className="mt-6 space-y-4" noValidate>
           {isRegistering && (
             <div>
               <label htmlFor="name" className="mb-1.5 block text-xs font-medium text-zinc-700">
@@ -155,6 +161,7 @@ export function LoginView() {
                 required
                 value={name}
                 onChange={(event) => setName(event.target.value)}
+                onKeyDown={handleExplicitEnter}
                 className="h-11 w-full rounded-lg border border-zinc-300 px-3.5 text-sm text-zinc-900 outline-none focus:border-zinc-600 focus:ring-2 focus:ring-zinc-200"
               />
             </div>
@@ -172,6 +179,7 @@ export function LoginView() {
               autoFocus={!isRegistering}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              onKeyDown={handleExplicitEnter}
               className="h-11 w-full rounded-lg border border-zinc-300 px-3.5 text-sm text-zinc-900 outline-none focus:border-zinc-600 focus:ring-2 focus:ring-zinc-200"
             />
           </div>
@@ -190,6 +198,7 @@ export function LoginView() {
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                onKeyDown={handleExplicitEnter}
                 className="h-11 w-full rounded-lg border border-zinc-300 pl-3.5 pr-12 text-sm text-zinc-900 outline-none focus:border-zinc-600 focus:ring-2 focus:ring-zinc-200"
               />
               <button
@@ -211,7 +220,8 @@ export function LoginView() {
           </div>
 
           <button
-            type="submit"
+            type="button"
+            onClick={() => void handleSubmit()}
             disabled={isSubmitting}
             className="flex h-11 w-full items-center justify-center rounded-lg bg-zinc-950 text-sm font-medium text-white hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
           >

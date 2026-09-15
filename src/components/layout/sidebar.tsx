@@ -88,7 +88,7 @@ export function Sidebar({ activeView = "today", onSelectView, className, isColla
           {!isCollapsed && projects.some((project) => project.archived) && <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Archived</p>}
           {!isCollapsed && projects.filter((project) => project.archived).map((project) => <SidebarItem key={project.id} icon={<Archive className="h-4 w-4 text-zinc-400" />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} />)}
           {projects.length === 0 && !isCollapsed && <p className="px-2 py-2 text-[11px] leading-4 text-zinc-400">Create a project when a task needs a home.</p>}
-          {isCollapsed && <button type="button" onClick={() => { setAddingProject(true); setProjectError(null); }} className="flex h-8 w-full items-center justify-center rounded text-zinc-500 hover:bg-zinc-200" aria-label="Create project"><Plus className="h-4 w-4" /></button>}
+          {isCollapsed && <button type="button" onClick={() => { onToggleCollapse?.(); setAddingProject(true); setProjectError(null); }} className="flex h-8 w-full items-center justify-center rounded text-zinc-500 hover:bg-zinc-200" aria-label="Create project"><Plus className="h-4 w-4" /></button>}
         </div>
       </div>
     </div>

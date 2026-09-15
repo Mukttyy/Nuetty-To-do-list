@@ -11,10 +11,12 @@ interface DialogProps {
   onClose: () => void;
   children: React.ReactNode;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
   className?: string;
+  placement?: "center" | "drawer";
 }
 
-export function Dialog({ open, title, description, onClose, children, initialFocusRef, className }: DialogProps) {
+export function Dialog({ open, title, description, onClose, children, initialFocusRef, returnFocusRef, className, placement = "center" }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null);
   const onCloseRef = React.useRef(onClose);
   const titleId = React.useId();
@@ -24,6 +26,7 @@ export function Dialog({ open, title, description, onClose, children, initialFoc
   React.useEffect(() => {
     if (!open) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const returnFocus = returnFocusRef?.current ?? previousFocus;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const frame = requestAnimationFrame(() => {
@@ -38,7 +41,7 @@ export function Dialog({ open, title, description, onClose, children, initialFoc
         return;
       }
       if (event.key !== "Tab") return;
-      const focusable = panelRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])");
+      const focusable = Array.from(panelRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])") ?? []).filter(element => element.getClientRects().length > 0);
       if (!focusable?.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -56,14 +59,14 @@ export function Dialog({ open, title, description, onClose, children, initialFoc
       cancelAnimationFrame(frame);
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
+      returnFocus?.focus();
     };
-  }, [initialFocusRef, open]);
+  }, [initialFocusRef, returnFocusRef, open]);
 
   if (!open) return null;
 
-  return <div className="fixed inset-0 z-[80] flex items-end justify-center bg-zinc-950/35 p-0 sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} className={cn("w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-xl sm:p-6", className)}>
+  return <div className={cn("fixed inset-0 z-[80] flex bg-zinc-950/35", placement === "drawer" ? "items-stretch justify-start" : "items-end justify-center sm:items-center sm:p-6")} role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} className={cn("max-h-[100dvh] overflow-y-auto overscroll-contain bg-white p-5 shadow-2xl", placement === "drawer" ? "flex w-72 max-w-[85vw] flex-col" : "w-full rounded-t-2xl sm:max-h-[calc(100dvh-3rem)] sm:max-w-md sm:rounded-xl sm:p-6", className)}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id={titleId} className="text-base font-semibold text-zinc-950">{title}</h2>

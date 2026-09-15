@@ -28,6 +28,7 @@ export function SidebarItem({
       onClick={onClick}
       title={compact ? label : undefined}
       aria-label={compact ? label : undefined}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "flex min-h-11 w-full items-center justify-between gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] font-medium transition-colors select-none md:min-h-8",
         compact && "justify-center px-0",

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Archive, MoreHorizontal, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Archive, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { InlineTaskCreator } from "@/components/ui/inline-task-creator";
 import { ProjectIcon, projectIconOptions } from "@/components/ui/project-icon";
@@ -28,6 +28,7 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
   const [creatingSectionId, setCreatingSectionId] = React.useState<string | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
   React.useEffect(() => {
     if (!menuOpen) return;
     const closeOutside = (event: PointerEvent) => {
@@ -54,6 +55,7 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
   const [sectionName, setSectionName] = React.useState("");
   const [deleteTarget, setDeleteTarget] = React.useState<{ kind: "project" } | { kind: "section"; id: string; name: string } | null>(null);
   const sectionInputRef = React.useRef<HTMLInputElement>(null);
+  const projectInputRef = React.useRef<HTMLInputElement>(null);
   const [showCompleted, setShowCompleted] = React.useState(false);
   const completedCount = tasks.filter((task) => task.completed).length;
   const visibleTasks = showCompleted ? tasks : tasks.filter((task) => !task.completed);
@@ -108,7 +110,7 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
           {project.description && <p className="mt-1.5 max-w-xl text-xs leading-5 text-zinc-500">{project.description}</p>}
         </div>
         <div ref={menuRef} className="relative">
-          <button type="button" onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100" aria-label="Project options"><MoreHorizontal className="h-4 w-4" /></button>
+          <button ref={menuTriggerRef} aria-expanded={menuOpen} type="button" onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100" aria-label="Project options"><MoreHorizontal className="h-4 w-4" /></button>
           {menuOpen && <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">
             <button type="button" onClick={openProjectEditor} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Pencil className="h-3.5 w-3.5" />Edit project</button>
             <button type="button" onClick={() => openSectionEditor()} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Plus className="h-3.5 w-3.5" />Add section</button>
@@ -134,8 +136,8 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
               if (isOpen && sectionTasks.some(task => task.id === actions.selectedTaskId)) actions.onCloseExpand();
               setOpenSections(current => ({ ...current, [section.id]: !isOpen }));
             }} onAdd={() => { setCreatingSectionId(section.id); setOpenSections((current) => ({ ...current, [section.id]: true })); }} />
-            <button type="button" onClick={() => openSectionEditor(section)} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Rename ${section.name}`}><Pencil className="h-3 w-3" /></button>
-            <button type="button" onClick={() => setDeleteTarget({ kind: "section", id: section.id, name: section.name })} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Delete ${section.name}`}><Trash2 className="h-3 w-3" /></button>
+            <button type="button" onClick={() => openSectionEditor(section)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded text-zinc-500 sm:h-7 sm:w-7 sm:opacity-0 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Rename ${section.name}`}><Pencil className="h-3 w-3" /></button>
+            <button type="button" onClick={() => setDeleteTarget({ kind: "section", id: section.id, name: section.name })} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded text-zinc-500 sm:h-7 sm:w-7 sm:opacity-0 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Delete ${section.name}`}><Trash2 className="h-3 w-3" /></button>
           </div>
           {isOpen && <div className="space-y-1">
             <TaskListView {...actions} projects={actions.projects} title="" icon={null} tasks={sectionTasks} emptyTitle="" emptyDescription="" allowCreate={false} bare />
@@ -164,17 +166,12 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
       <ConfirmDialog open={deleteTarget?.kind === "project"} title={`Delete “${project.name}”?`} description="The project will be removed. Its tasks will move to Inbox, while their due dates and other details stay unchanged." confirmLabel="Delete project" destructive onClose={() => setDeleteTarget(null)} onConfirm={() => { setDeleteTarget(null); onDeleteProject(); }} />
       <ConfirmDialog open={deleteTarget?.kind === "section"} title={deleteTarget?.kind === "section" ? `Delete “${deleteTarget.name}”?` : "Delete section?"} description="Tasks in this section will move to General. No tasks will be deleted." confirmLabel="Delete section" destructive onClose={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget?.kind === "section") onDeleteSection(deleteTarget.id); setDeleteTarget(null); }} />
 
-      {editingProject && <div className="fixed inset-0 z-[70] flex items-end justify-center bg-zinc-950/30 p-0 sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingProject(false)}>
-        <form onSubmit={saveProject} role="dialog" aria-modal="true" aria-labelledby="edit-project-title" className="w-full rounded-t-2xl bg-white p-5 shadow-xl sm:max-w-md sm:rounded-xl sm:p-6">
-          <div className="flex items-center justify-between">
-            <h2 id="edit-project-title" className="text-base font-semibold text-zinc-950">Edit project</h2>
-            <button type="button" onClick={() => setEditingProject(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100" aria-label="Close project editor"><X className="h-4 w-4" /></button>
-          </div>
-
+      <Dialog open={editingProject} title="Edit project" onClose={() => setEditingProject(false)} initialFocusRef={projectInputRef} returnFocusRef={menuTriggerRef}>
+        <form onSubmit={saveProject}>
           <div className="mt-5 space-y-5">
             <div>
               <label htmlFor="project-edit-name" className="mb-1.5 block text-xs font-medium text-zinc-700">Name</label>
-              <input id="project-edit-name" autoFocus required maxLength={100} value={draftName} onChange={(event) => { setDraftName(event.target.value); setProjectError(null); }} aria-invalid={Boolean(projectError)} aria-describedby={projectError ? "project-edit-error" : undefined} className={`h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2 ${projectError ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-zinc-300 focus:border-zinc-600 focus:ring-zinc-200"}`} />
+              <input id="project-edit-name" ref={projectInputRef} required maxLength={100} value={draftName} onChange={(event) => { setDraftName(event.target.value); setProjectError(null); }} aria-invalid={Boolean(projectError)} aria-describedby={projectError ? "project-edit-error" : undefined} className={`h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2 ${projectError ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-zinc-300 focus:border-zinc-600 focus:ring-zinc-200"}`} />
               {projectError && <p id="project-edit-error" role="alert" className="mt-1.5 text-xs text-red-700">{projectError}</p>}
             </div>
             <div>
@@ -200,7 +197,7 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
             <button type="submit" disabled={!draftName.trim()} className="h-9 rounded-lg bg-zinc-900 px-4 text-xs font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40">Save changes</button>
           </div>
         </form>
-      </div>}
+      </Dialog>
     </div>
   );
 }

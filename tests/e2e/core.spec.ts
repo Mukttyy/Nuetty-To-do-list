@@ -471,3 +471,56 @@ test("keeps the task canvas usable on mobile", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Inbox" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test("keeps mobile navigation focus contained and restores it on close", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await createAccount(page);
+  await expect(page.getByRole("complementary", { name: "Primary navigation" })).toHaveCount(0);
+  const trigger = page.getByRole("button", { name: "Open navigation" });
+  await trigger.click();
+  const drawer = page.getByRole("dialog", { name: "Navigation" });
+  const close = drawer.getByRole("button", { name: "Close dialog" });
+  await expect(close).toBeFocused();
+  await close.press("Shift+Tab");
+  await expect(drawer.getByRole("button", { name: "Create project" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(close).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await drawer.getByRole("button", { name: "Quick find" }).click();
+  await expect(page.getByRole("combobox")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await trigger.click();
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(drawer).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
+});
+
+test("project editor fits a short mobile screen and supports keyboard dismissal", async ({ page }) => {
+  await createAccount(page);
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("textbox", { name: "Project name" }).fill("Mobile project");
+  await page.getByRole("textbox", { name: "Project name" }).press("Enter");
+  await page.getByRole("button", { name: /Mobile project/ }).click();
+  await page.setViewportSize({ width: 320, height: 480 });
+  const options = page.getByRole("button", { name: "Project options" });
+  await options.click();
+  await page.getByRole("button", { name: "Edit project", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit project" });
+  await expect(editor.getByLabel("Name", { exact: true })).toBeFocused();
+  const bounds = await editor.boundingBox();
+  expect(bounds!.y).toBeGreaterThanOrEqual(0);
+  expect(bounds!.height).toBeLessThanOrEqual(480);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await editor.getByRole("button", { name: "Close dialog" }).focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(editor.getByRole("button", { name: "Save changes" })).toBeFocused();
+  await editor.getByLabel("Name", { exact: true }).fill("Unsaved name");
+  await page.keyboard.press("Escape");
+  await expect(editor).toHaveCount(0);
+  await expect(options).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Mobile project" })).toBeVisible();
+});

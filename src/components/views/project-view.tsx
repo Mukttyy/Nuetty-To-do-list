@@ -12,11 +12,11 @@ interface ProjectViewProps extends TaskListActions {
   project: Project;
   tasks: Task[];
   onAddTask: (title: string, sectionId?: string) => void;
-  onUpdateProject: (changes: Pick<Project, "name" | "description" | "color" | "icon">) => void;
+  onUpdateProject: (changes: Pick<Project, "name" | "description" | "color" | "icon">) => string | undefined;
   onArchiveProject: () => void;
   onDeleteProject: () => void;
-  onAddSection: (name: string) => void;
-  onRenameSection: (sectionId: string, name: string) => void;
+  onAddSection: (name: string) => string | undefined;
+  onRenameSection: (sectionId: string, name: string) => string | undefined;
   onDeleteSection: (sectionId: string) => void;
 }
 
@@ -31,25 +31,35 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
   const [draftDescription, setDraftDescription] = React.useState(project.description ?? "");
   const [draftIcon, setDraftIcon] = React.useState(project.icon ?? "folder");
   const [draftColor, setDraftColor] = React.useState(project.color);
-  const generalTasks = tasks.filter((task) => !task.sectionId);
+  const [projectError, setProjectError] = React.useState<string | null>(null);
+  const [sectionError, setSectionError] = React.useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = React.useState(false);
+  const completedCount = tasks.filter((task) => task.completed).length;
+  const visibleTasks = showCompleted ? tasks : tasks.filter((task) => !task.completed);
+  const generalTasks = visibleTasks.filter((task) => !task.sectionId);
 
   const openProjectEditor = () => {
     setDraftName(project.name);
     setDraftDescription(project.description ?? "");
     setDraftIcon(project.icon ?? "folder");
     setDraftColor(project.color);
+    setProjectError(null);
     setEditingProject(true);
     setMenuOpen(false);
   };
   const saveProject = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!draftName.trim()) return;
-    onUpdateProject({ name: draftName, description: draftDescription, icon: draftIcon, color: draftColor });
+    const error = onUpdateProject({ name: draftName, description: draftDescription, icon: draftIcon, color: draftColor });
+    if (error) {
+      setProjectError(error);
+      return;
+    }
     setEditingProject(false);
   };
   const askAddSection = () => {
     const name = window.prompt("New section name");
-    if (name?.trim()) onAddSection(name);
+    if (name?.trim()) setSectionError(onAddSection(name) ?? null);
     setMenuOpen(false);
   };
 
@@ -60,7 +70,7 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
           <div className="flex items-center gap-2.5">
             <ProjectIcon name={project.icon} className="h-4 w-4" style={{ color: project.color }} />
             <h1 className="truncate text-xl font-semibold tracking-tight text-zinc-950">{project.name}</h1>
-            <span className="text-sm text-zinc-500">{tasks.length}</span>
+            <span className="text-sm text-zinc-500">{tasks.filter((task) => !task.completed).length}</span>
           </div>
           {project.description && <p className="mt-1.5 max-w-xl text-xs leading-5 text-zinc-500">{project.description}</p>}
         </div>
@@ -70,20 +80,27 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
             <button type="button" onClick={openProjectEditor} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Pencil className="h-3.5 w-3.5" />Edit project</button>
             <button type="button" onClick={askAddSection} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Plus className="h-3.5 w-3.5" />Add section</button>
             <button type="button" onClick={() => { onArchiveProject(); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Archive className="h-3.5 w-3.5" />{project.archived ? "Unarchive project" : "Archive project"}</button>
-            <button type="button" onClick={() => { if (window.confirm(`Delete “${project.name}”? Its tasks will be moved to Inbox.`)) onDeleteProject(); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-red-700 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete project</button>
+            <button type="button" onClick={() => { if (window.confirm(`Delete “${project.name}”? Its tasks will move to Inbox and keep their due dates.`)) onDeleteProject(); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-red-700 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete project</button>
           </div>}
         </div>
       </div>
 
+      {sectionError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{sectionError}</p>}
+
+      {completedCount > 0 && <label className="flex min-h-10 w-fit cursor-pointer items-center gap-2 text-xs font-medium text-zinc-600">
+        <input type="checkbox" checked={showCompleted} onChange={(event) => setShowCompleted(event.target.checked)} className="h-4 w-4 rounded border-zinc-300 accent-zinc-900" />
+        Show completed ({completedCount})
+      </label>}
+
       <InlineTaskCreator placeholder={`Add a task to ${project.name}...`} onAdd={(title) => onAddTask(title)} />
 
       {project.sections.map((section) => {
-        const sectionTasks = tasks.filter((task) => task.sectionId === section.id);
+        const sectionTasks = visibleTasks.filter((task) => task.sectionId === section.id);
         const isOpen = openSections[section.id] ?? true;
         return <section key={section.id} className="space-y-1">
           <div className="group flex items-center gap-1">
             <SectionHeader title={section.name} count={sectionTasks.length} isOpen={isOpen} onToggle={() => setOpenSections((current) => ({ ...current, [section.id]: !isOpen }))} onAdd={() => { setCreatingSectionId(section.id); setOpenSections((current) => ({ ...current, [section.id]: true })); }} />
-            <button type="button" onClick={() => { const name = window.prompt("Section name", section.name); if (name?.trim()) onRenameSection(section.id, name); }} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Rename ${section.name}`}><Pencil className="h-3 w-3" /></button>
+            <button type="button" onClick={() => { const name = window.prompt("Section name", section.name); if (name?.trim()) setSectionError(onRenameSection(section.id, name) ?? null); }} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Rename ${section.name}`}><Pencil className="h-3 w-3" /></button>
             <button type="button" onClick={() => window.confirm(`Delete section “${section.name}”? Its tasks will move to General.`) && onDeleteSection(section.id)} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Delete ${section.name}`}><Trash2 className="h-3 w-3" /></button>
           </div>
           {isOpen && <div className="space-y-1">
@@ -108,7 +125,8 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
           <div className="mt-5 space-y-5">
             <div>
               <label htmlFor="project-edit-name" className="mb-1.5 block text-xs font-medium text-zinc-700">Name</label>
-              <input id="project-edit-name" autoFocus required maxLength={100} value={draftName} onChange={(event) => setDraftName(event.target.value)} className="h-10 w-full rounded-lg border border-zinc-300 px-3 text-sm outline-none focus:border-zinc-600 focus:ring-2 focus:ring-zinc-200" />
+              <input id="project-edit-name" autoFocus required maxLength={100} value={draftName} onChange={(event) => { setDraftName(event.target.value); setProjectError(null); }} aria-invalid={Boolean(projectError)} aria-describedby={projectError ? "project-edit-error" : undefined} className={`h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2 ${projectError ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-zinc-300 focus:border-zinc-600 focus:ring-zinc-200"}`} />
+              {projectError && <p id="project-edit-error" role="alert" className="mt-1.5 text-xs text-red-700">{projectError}</p>}
             </div>
             <div>
               <div className="mb-1.5 flex items-center justify-between"><label htmlFor="project-edit-description" className="text-xs font-medium text-zinc-700">Description</label><span className="text-[10px] text-zinc-400">{draftDescription.length}/280</span></div>

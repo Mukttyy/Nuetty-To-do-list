@@ -209,6 +209,10 @@ export const TaskRow = React.forwardRef<HTMLDivElement, TaskRowProps>(function T
           </label>
         </div>
 
+        <p className="ml-7 text-[11px] leading-4 text-zinc-500">
+          Availability controls where the task is kept. Due date controls when it appears in Today or Upcoming.
+        </p>
+
         <div className="ml-7 flex flex-wrap items-center gap-1.5">
           {tags.map((tag) => <span key={tag} className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-1 text-[11px] text-zinc-600">#{tag}<button type="button" onClick={() => onRemoveTag?.(tag)} aria-label={`Remove ${tag} tag`}><X className="h-3 w-3" /></button></span>)}
           <div className="flex items-center rounded-md border border-transparent focus-within:border-zinc-200">

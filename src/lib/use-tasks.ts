@@ -105,7 +105,6 @@ export function useTasks(actorName = "Current user") {
     updateTask(id, (task) => ({
       ...task,
       schedule,
-      dueDate: schedule === "inbox" || schedule === "someday" ? undefined : task.dueDate,
       activity: [activity(actorName, `moved task to "${schedule === "anytime" ? "Anytime" : schedule[0].toUpperCase() + schedule.slice(1)}".`), ...task.activity],
     }));
   }, [actorName, updateTask]);
@@ -113,7 +112,6 @@ export function useTasks(actorName = "Current user") {
     updateTask(id, (task) => ({
       ...task,
       dueDate: dueDate || undefined,
-      schedule: dueDate ? "anytime" : taskSchedule(task),
       activity: [activity(actorName, dueDate ? `scheduled task for ${dueDate}.` : "cleared due date."), ...task.activity],
     }));
   }, [actorName, updateTask]);
@@ -129,7 +127,6 @@ export function useTasks(actorName = "Current user") {
       ...task,
       projectId: projectId || undefined,
       sectionId: undefined,
-      schedule: projectId && taskSchedule(task) === "inbox" ? "anytime" : taskSchedule(task),
       activity: [activity(actorName, `moved task to "${projectName}".`), ...task.activity],
     }));
   }, [actorName, projects, updateTask]);
@@ -211,17 +208,19 @@ export function useTasks(actorName = "Current user") {
     setLastDeletedTaskId(null);
   }, [mutateTasks]);
 
-  const createProject = React.useCallback((name: string) => {
+  const createProject = React.useCallback((name: string): string | undefined => {
     const cleanName = name.trim();
-    if (!cleanName || projects.some((project) => project.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return;
+    if (!cleanName) return "Enter a project name.";
+    if (projects.some((project) => project.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return "A project with this name already exists.";
     mutateProjects((current) => [...current, {
       id: createEntityId("project"), name: cleanName, color: "#52525B", icon: "folder", archived: false,
       position: current.length, sections: [],
     }]);
   }, [mutateProjects, projects]);
-  const updateProject = React.useCallback((id: string, changes: Pick<Project, "name" | "description" | "color" | "icon">) => {
+  const updateProject = React.useCallback((id: string, changes: Pick<Project, "name" | "description" | "color" | "icon">): string | undefined => {
     const cleanName = changes.name.trim();
-    if (!cleanName || projects.some((project) => project.id !== id && project.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return;
+    if (!cleanName) return "Enter a project name.";
+    if (projects.some((project) => project.id !== id && project.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return "A project with this name already exists.";
     mutateProjects((current) => current.map((project) => project.id === id ? {
       ...project,
       name: cleanName,
@@ -235,25 +234,31 @@ export function useTasks(actorName = "Current user") {
   }, [mutateProjects]);
   const deleteProject = React.useCallback((id: string) => {
     mutateTasks((current) => current.map((task) => task.projectId === id
-      ? { ...task, projectId: undefined, sectionId: undefined, schedule: "inbox" as const, dueDate: undefined }
+      ? { ...task, projectId: undefined, sectionId: undefined, schedule: "inbox" as const }
       : task));
     mutateProjects((current) => current.filter((project) => project.id !== id));
   }, [mutateProjects, mutateTasks]);
-  const addSection = React.useCallback((projectId: string, name: string) => {
+  const addSection = React.useCallback((projectId: string, name: string): string | undefined => {
     const cleanName = name.trim();
-    if (!cleanName) return;
+    if (!cleanName) return "Enter a section name.";
+    const project = projects.find((item) => item.id === projectId);
+    if (!project) return "This project is no longer available.";
+    if (project.sections.some((section) => section.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return "A section with this name already exists.";
     mutateProjects((current) => current.map((project) => {
-      if (project.id !== projectId || project.sections.some((section) => section.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return project;
+      if (project.id !== projectId) return project;
       return { ...project, sections: [...project.sections, { id: createEntityId("section"), name: cleanName, position: project.sections.length }] };
     }));
-  }, [mutateProjects]);
-  const renameSection = React.useCallback((projectId: string, sectionId: string, name: string) => {
+  }, [mutateProjects, projects]);
+  const renameSection = React.useCallback((projectId: string, sectionId: string, name: string): string | undefined => {
     const cleanName = name.trim();
-    if (!cleanName) return;
+    if (!cleanName) return "Enter a section name.";
+    const project = projects.find((item) => item.id === projectId);
+    if (!project) return "This project is no longer available.";
+    if (project.sections.some((section) => section.id !== sectionId && section.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase())) return "A section with this name already exists.";
     mutateProjects((current) => current.map((project) => project.id === projectId
       ? { ...project, sections: project.sections.map((section) => section.id === sectionId ? { ...section, name: cleanName } : section) }
       : project));
-  }, [mutateProjects]);
+  }, [mutateProjects, projects]);
   const deleteSection = React.useCallback((projectId: string, sectionId: string) => {
     mutateTasks((current) => current.map((task) => task.sectionId === sectionId ? { ...task, sectionId: undefined } : task));
     mutateProjects((current) => current.map((project) => project.id === projectId

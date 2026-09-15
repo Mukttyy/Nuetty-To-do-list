@@ -22,17 +22,26 @@ export interface SidebarProps {
   isMobileOpen?: boolean;
   counts?: Counts;
   projects?: Project[];
-  onCreateProject?: (name: string) => void;
+  onCreateProject?: (name: string) => string | undefined;
 }
 
 export function Sidebar({ activeView = "today", onSelectView, className, isCollapsed = false, onToggleCollapse, onOpenCommandPalette, isMobileOpen = false, counts = {}, projects = [], onCreateProject }: SidebarProps) {
   const [addingProject, setAddingProject] = React.useState(false);
   const [projectName, setProjectName] = React.useState("");
+  const [projectError, setProjectError] = React.useState<string | null>(null);
   const submitProject = () => {
     const value = projectName.trim();
-    if (!value) return;
-    onCreateProject?.(value);
+    if (!value) {
+      setProjectError("Enter a project name.");
+      return;
+    }
+    const error = onCreateProject?.(value);
+    if (error) {
+      setProjectError(error);
+      return;
+    }
     setProjectName("");
+    setProjectError(null);
     setAddingProject(false);
   };
   const nav = [
@@ -65,18 +74,21 @@ export function Sidebar({ activeView = "today", onSelectView, className, isColla
       <div className="mt-5 border-t border-zinc-200 px-2 pt-3">
         {!isCollapsed && <div className="mb-1 flex items-center justify-between px-2">
           <span className="text-xs font-semibold text-zinc-600">Projects</span>
-          <button type="button" onClick={() => setAddingProject(true)} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700" aria-label="Create project"><Plus className="h-3.5 w-3.5" /></button>
+          <button type="button" onClick={() => { setAddingProject(true); setProjectError(null); }} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700" aria-label="Create project"><Plus className="h-3.5 w-3.5" /></button>
         </div>}
-        {addingProject && !isCollapsed && <div className="mb-2 flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2">
-          <input autoFocus value={projectName} onChange={(event) => setProjectName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submitProject(); if (event.key === "Escape") setAddingProject(false); }} placeholder="Project name" aria-label="Project name" className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none" />
-          <button type="button" onClick={() => setAddingProject(false)} aria-label="Cancel project"><X className="h-3.5 w-3.5 text-zinc-400" /></button>
+        {addingProject && !isCollapsed && <div className="mb-2">
+          <div className={cn("flex items-center gap-1 rounded-md border bg-white px-2", projectError ? "border-red-300" : "border-zinc-200")}>
+            <input autoFocus value={projectName} onChange={(event) => { setProjectName(event.target.value); setProjectError(null); }} onKeyDown={(event) => { if (event.key === "Enter") submitProject(); if (event.key === "Escape") { setAddingProject(false); setProjectError(null); } }} placeholder="Project name" aria-label="Project name" aria-invalid={Boolean(projectError)} aria-describedby={projectError ? "project-create-error" : undefined} className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none" />
+            <button type="button" onClick={() => { setAddingProject(false); setProjectError(null); }} aria-label="Cancel project"><X className="h-3.5 w-3.5 text-zinc-400" /></button>
+          </div>
+          {projectError && <p id="project-create-error" role="alert" className="px-2 pt-1.5 text-[11px] text-red-700">{projectError}</p>}
         </div>}
         <div className="space-y-0.5">
           {projects.filter((project) => !project.archived).map((project) => <SidebarItem key={project.id} icon={<ProjectIcon name={project.icon} className="h-4 w-4" style={{ color: project.color }} />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} compact={isCollapsed} />)}
           {!isCollapsed && projects.some((project) => project.archived) && <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Archived</p>}
           {!isCollapsed && projects.filter((project) => project.archived).map((project) => <SidebarItem key={project.id} icon={<Archive className="h-4 w-4 text-zinc-400" />} label={project.name} count={counts.projects?.[project.id]} active={activeView === `project:${project.id}`} onClick={() => onSelectView?.(`project:${project.id}`)} />)}
           {projects.length === 0 && !isCollapsed && <p className="px-2 py-2 text-[11px] leading-4 text-zinc-400">Create a project when a task needs a home.</p>}
-          {isCollapsed && <button type="button" onClick={() => setAddingProject(true)} className="flex h-8 w-full items-center justify-center rounded text-zinc-500 hover:bg-zinc-200" aria-label="Create project"><Plus className="h-4 w-4" /></button>}
+          {isCollapsed && <button type="button" onClick={() => { setAddingProject(true); setProjectError(null); }} className="flex h-8 w-full items-center justify-center rounded text-zinc-500 hover:bg-zinc-200" aria-label="Create project"><Plus className="h-4 w-4" /></button>}
         </div>
       </div>
     </div>

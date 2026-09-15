@@ -55,7 +55,23 @@ function TaskDashboard() {
   const trashTasks = React.useMemo(() => tasks.filter((task) => task.isDeleted), [tasks]);
   const activeProjectId = activeView.startsWith("project:") ? activeView.slice(8) : undefined;
   const activeProject = projects.find((project) => project.id === activeProjectId);
-  const projectTasks = activeProject ? available.filter((task) => task.projectId === activeProject.id) : [];
+  const projectTasks = activeProject ? tasks.filter((task) => !task.isDeleted && task.projectId === activeProject.id) : [];
+  const openProjectTasks = projectTasks.filter((task) => !task.completed);
+
+  const progressTasks = React.useMemo(() => {
+    const present = tasks.filter((task) => !task.isDeleted);
+    if (activeProjectId) return present.filter((task) => task.projectId === activeProjectId);
+    if (activeView === "inbox") return present.filter((task) => taskSchedule(task) === "inbox");
+    if (activeView === "today") return present.filter((task) => {
+      if (!task.dueDate || task.dueDate > today) return false;
+      if (!task.completed) return true;
+      return task.completedAt ? localDateKey(new Date(task.completedAt)) === today : false;
+    });
+    if (activeView === "upcoming") return present.filter((task) => Boolean(task.dueDate && task.dueDate > today));
+    if (activeView === "anytime") return present.filter((task) => taskSchedule(task) === "anytime" && !task.dueDate);
+    if (activeView === "someday") return present.filter((task) => taskSchedule(task) === "someday");
+    return [];
+  }, [activeProjectId, activeView, tasks, today]);
 
   const currentTasks = activeView === "inbox" ? inboxTasks
     : activeView === "today" ? todayTasks
@@ -64,7 +80,7 @@ function TaskDashboard() {
           : activeView === "someday" ? somedayTasks
             : activeView === "completed" ? completedTasks
               : activeView === "trash" ? trashTasks
-                : projectTasks;
+                : openProjectTasks;
 
   const openSearchResult = React.useCallback((task: Task) => {
     let destination: string;
@@ -148,7 +164,7 @@ function TaskDashboard() {
               : null;
 
   return <>
-    <AppShell activeView={activeView} onSelectView={setActiveView} onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} completedCount={currentTasks.filter((task) => task.completed).length} totalCount={currentTasks.length} syncStatus={taskState.syncStatus} onBeforeLogout={taskState.flushNow} counts={taskState.counts} projects={projects} onCreateProject={taskState.createProject}>
+    <AppShell activeView={activeView} onSelectView={setActiveView} onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} completedCount={progressTasks.filter((task) => task.completed).length} totalCount={progressTasks.length} syncStatus={taskState.syncStatus} onBeforeLogout={taskState.flushNow} counts={taskState.counts} projects={projects} onCreateProject={taskState.createProject}>
       {listView && <TaskListView {...commonActions} title={listView.title} description={listView.description} icon={listView.icon} tasks={listView.tasks} emptyTitle={listView.emptyTitle} emptyDescription={listView.emptyDescription} allowCreate={activeView !== "completed"} createPlaceholder={listView.placeholder} onAddTask={(title) => taskState.createTask(title, listView.options)} />}
       {activeProject && <ProjectView {...commonActions} project={activeProject} tasks={projectTasks} onAddTask={(title, sectionId) => taskState.createTask(title, { schedule: "anytime", projectId: activeProject.id, sectionId })} onUpdateProject={(changes) => taskState.updateProject(activeProject.id, changes)} onArchiveProject={() => { taskState.archiveProject(activeProject.id); if (!activeProject.archived) setActiveView("inbox"); }} onDeleteProject={() => { taskState.deleteProject(activeProject.id); setActiveView("inbox"); }} onAddSection={(name) => taskState.addSection(activeProject.id, name)} onRenameSection={(sectionId, name) => taskState.renameSection(activeProject.id, sectionId, name)} onDeleteSection={(sectionId) => taskState.deleteSection(activeProject.id, sectionId)} />}
       {activeView === "trash" && <TrashView tasks={trashTasks} projects={projects} onRestoreTask={taskState.restoreTask} onPermanentlyDeleteTask={taskState.permanentlyDeleteTask} onEmptyTrash={taskState.emptyTrash} />}

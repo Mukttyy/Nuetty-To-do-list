@@ -64,6 +64,13 @@ test("creates custom projects and sections and files tasks contextually", async 
   const projectSave = waitForSave(page, "Client Work");
   await page.getByLabel("Project name").press("Enter");
   expect((await projectSave).ok()).toBe(true);
+
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByLabel("Project name").fill("client work");
+  await page.getByLabel("Project name").press("Enter");
+  await expect(page.getByText("A project with this name already exists.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel project" }).click();
+
   await page.getByRole("button", { name: /Client Work/ }).click();
   await expect(page.getByRole("heading", { name: "Client Work" })).toBeVisible();
 
@@ -73,6 +80,11 @@ test("creates custom projects and sections and files tasks contextually", async 
   await page.getByRole("button", { name: "Add section" }).click();
   expect((await sectionSave).ok()).toBe(true);
   await expect(page.getByText("Delivery", { exact: true })).toBeVisible();
+
+  page.once("dialog", (dialog) => dialog.accept("delivery"));
+  await page.getByRole("button", { name: "Project options" }).click();
+  await page.getByRole("button", { name: "Add section" }).click();
+  await expect(page.getByText("A section with this name already exists.", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Add task to Delivery" }).click();
   const creator = page.getByPlaceholder("Add a task to Delivery...");
@@ -105,6 +117,13 @@ test("creates custom projects and sections and files tasks contextually", async 
   await expect(page.getByRole("heading", { name: "Delivery Ops" })).toBeVisible();
   await expect(page.getByText("Client delivery work and handoffs.")).toBeVisible();
 
+  const completeSave = waitForSave(page, '"completed":true');
+  await page.getByRole("checkbox", { name: "Complete Ship custom workflow" }).click();
+  await completeSave;
+  await expect(page.getByText("Ship custom workflow", { exact: true })).toHaveCount(0);
+  await page.getByText("Show completed (1)").click();
+  await expect(page.getByText("Ship custom workflow", { exact: true })).toBeVisible();
+
   const archiveSave = waitForSave(page, '"archived":true');
   await page.getByRole("button", { name: "Project options" }).click();
   await page.getByRole("button", { name: "Archive project" }).click();
@@ -115,6 +134,42 @@ test("creates custom projects and sections and files tasks contextually", async 
   await page.getByRole("button", { name: "Project options" }).click();
   await page.getByRole("button", { name: "Unarchive project" }).click();
   await unarchiveSave;
+});
+
+test("keeps due dates independent from availability and project deletion", async ({ page }) => {
+  await createAccount(page, "Scheduling Rules User");
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByLabel("Project name").fill("Scheduled Work");
+  const projectSave = waitForSave(page, "Scheduled Work");
+  await page.getByLabel("Project name").press("Enter");
+  await projectSave;
+
+  await page.getByRole("button", { name: /Today/ }).click();
+  await createTodayTask(page, "Keep this date");
+  const dueDate = await page.getByLabel("Due date").inputValue();
+
+  const availabilitySave = waitForSave(page, '"schedule":"inbox"');
+  await page.getByLabel("Availability").selectOption("inbox");
+  await availabilitySave;
+  await expect(page.getByLabel("Due date")).toHaveValue(dueDate);
+
+  const projectId = await page.getByLabel("Project", { exact: true }).locator("option", { hasText: "Scheduled Work" }).getAttribute("value");
+  const moveSave = waitForSave(page, projectId ?? "project-");
+  await page.getByLabel("Project", { exact: true }).selectOption({ label: "Scheduled Work" });
+  await moveSave;
+  await expect(page.getByLabel("Due date")).toHaveValue(dueDate);
+
+  await page.getByRole("button", { name: "Close task details" }).click();
+  await page.getByRole("button", { name: /Scheduled Work/ }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  const deleteSave = page.waitForResponse((response) => response.url().endsWith("/api/tasks") && response.request().method() === "PUT");
+  await page.getByRole("button", { name: "Project options" }).click();
+  await page.getByRole("button", { name: "Delete project" }).click();
+  await deleteSave;
+
+  await expect(page.getByRole("heading", { name: "Inbox" })).toBeVisible();
+  await page.getByText("Keep this date", { exact: true }).click();
+  await expect(page.getByLabel("Due date")).toHaveValue(dueDate);
 });
 
 test("opens anytime project tasks safely from Quick Find", async ({ page }) => {

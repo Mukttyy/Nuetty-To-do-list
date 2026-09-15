@@ -27,7 +27,7 @@ export interface AppShellProps {
     projects?: Record<string, number>;
   };
   projects?: Project[];
-  onCreateProject?: (name: string) => void;
+  onCreateProject?: (name: string) => string | undefined;
   className?: string;
 }
 

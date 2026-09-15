@@ -96,6 +96,7 @@ function TaskDashboard() {
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
         event.preventDefault();
         setIsCommandPaletteOpen((open) => !open);

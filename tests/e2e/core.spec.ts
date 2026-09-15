@@ -99,7 +99,17 @@ test("keeps sample content exclusive to the demo account", async ({ page }) => {
 test("creates and persists a dated task", async ({ page }) => {
   await createAccount(page);
   await createTodayTask(page, "Persistent dated task");
-  await expect(page.getByLabel("Due date")).toHaveValue(new Date().toLocaleDateString("en-CA"));
+  await page.getByRole("button", { name: "Due date", exact: true }).click();
+  const calendar = page.getByRole("dialog", { name: "Choose due date" });
+  await expect(calendar.getByRole("button", { name: new Date().toLocaleDateString("en-CA"), exact: true })).toHaveAttribute("aria-pressed", "true");
+  await calendar.getByRole("button", { name: "Next month" }).click();
+  const next = new Date();
+  next.setMonth(next.getMonth() + 1, 1);
+  const save = waitForSave(page, next.toLocaleDateString("en-CA"));
+  await calendar.getByRole("button", { name: next.toLocaleDateString("en-CA"), exact: true }).click();
+  await save;
+  await page.getByRole("button", { name: /Upcoming/ }).click();
+  await page.getByRole("button", { name: "Open task: Persistent dated task" }).click();
   await expect(page.getByLabel("Project", { exact: true })).toHaveValue("");
   await page.reload();
   await expect(page.getByText("Persistent dated task", { exact: true })).toBeVisible();
@@ -210,18 +220,18 @@ test("keeps due dates independent from availability and project deletion", async
 
   await page.getByRole("button", { name: /Today/ }).click();
   await createTodayTask(page, "Keep this date");
-  const dueDate = await page.getByLabel("Due date").inputValue();
+  const dueDate = await page.getByLabel("Due date", { exact: true }).innerText();
 
   const availabilitySave = waitForSave(page, '"schedule":"inbox"');
   await page.getByLabel("Availability").selectOption("inbox");
   await availabilitySave;
-  await expect(page.getByLabel("Due date")).toHaveValue(dueDate);
+  await expect(page.getByLabel("Due date", { exact: true })).toHaveText(dueDate);
 
   const projectId = await page.getByLabel("Project", { exact: true }).locator("option", { hasText: "Scheduled Work" }).getAttribute("value");
   const moveSave = waitForSave(page, projectId ?? "project-");
   await page.getByLabel("Project", { exact: true }).selectOption({ label: "Scheduled Work" });
   await moveSave;
-  await expect(page.getByLabel("Due date")).toHaveValue(dueDate);
+  await expect(page.getByLabel("Due date", { exact: true })).toHaveText(dueDate);
 
   await page.getByRole("button", { name: "Close task details" }).click();
   await page.getByRole("button", { name: /Scheduled Work/ }).click();
@@ -233,7 +243,7 @@ test("keeps due dates independent from availability and project deletion", async
 
   await expect(page.getByRole("heading", { name: "Inbox" })).toBeVisible();
   await page.getByText("Keep this date", { exact: true }).click();
-  await expect(page.getByLabel("Due date")).toHaveValue(dueDate);
+  await expect(page.getByLabel("Due date", { exact: true })).toHaveText(dueDate);
 });
 
 test("opens anytime project tasks safely from Quick Find", async ({ page }) => {

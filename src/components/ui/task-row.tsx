@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CheckSquare, Plus, Trash2, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import type { Project, TaskPriority, TaskProject, TaskSchedule, TaskView } from "@/types/task";
 
@@ -185,10 +186,10 @@ export const TaskRow = React.forwardRef<HTMLDivElement, TaskRowProps>(function T
               {currentProject?.sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
             </select>
           </label>
-          <label className="space-y-1 text-[11px] font-medium text-zinc-500">
+          <div className="space-y-1 text-[11px] font-medium text-zinc-500">
             <span>Due date</span>
-            <input aria-label="Due date" type="date" value={dueDate ?? ""} onChange={(event) => onDueDateChange?.(event.target.value || undefined)} className="h-9 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-700 outline-none focus:ring-2 focus:ring-zinc-300" />
-          </label>
+            <DatePicker value={dueDate} onChange={(date) => onDueDateChange?.(date)} />
+          </div>
           <label className="space-y-1 text-[11px] font-medium text-zinc-500">
             <span>Availability</span>
             <select aria-label="Availability" value={schedule} onChange={(event) => onScheduleModeChange?.(event.target.value as TaskSchedule)} className="h-9 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-700 outline-none focus:ring-2 focus:ring-zinc-300">

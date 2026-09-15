@@ -27,6 +27,22 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
   const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({});
   const [creatingSectionId, setCreatingSectionId] = React.useState<string | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const closeEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeEscape);
+    };
+  }, [menuOpen]);
   const [editingProject, setEditingProject] = React.useState(false);
   const [draftName, setDraftName] = React.useState(project.name);
   const [draftDescription, setDraftDescription] = React.useState(project.description ?? "");
@@ -91,7 +107,7 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
           </div>
           {project.description && <p className="mt-1.5 max-w-xl text-xs leading-5 text-zinc-500">{project.description}</p>}
         </div>
-        <div className="relative">
+        <div ref={menuRef} className="relative">
           <button type="button" onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100" aria-label="Project options"><MoreHorizontal className="h-4 w-4" /></button>
           {menuOpen && <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">
             <button type="button" onClick={openProjectEditor} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Pencil className="h-3.5 w-3.5" />Edit project</button>

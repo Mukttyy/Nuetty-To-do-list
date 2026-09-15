@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Archive, MoreHorizontal, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { InlineTaskCreator } from "@/components/ui/inline-task-creator";
 import { ProjectIcon, projectIconOptions } from "@/components/ui/project-icon";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -33,6 +34,10 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
   const [draftColor, setDraftColor] = React.useState(project.color);
   const [projectError, setProjectError] = React.useState<string | null>(null);
   const [sectionError, setSectionError] = React.useState<string | null>(null);
+  const [sectionEditor, setSectionEditor] = React.useState<{ sectionId?: string; title: string } | null>(null);
+  const [sectionName, setSectionName] = React.useState("");
+  const [deleteTarget, setDeleteTarget] = React.useState<{ kind: "project" } | { kind: "section"; id: string; name: string } | null>(null);
+  const sectionInputRef = React.useRef<HTMLInputElement>(null);
   const [showCompleted, setShowCompleted] = React.useState(false);
   const completedCount = tasks.filter((task) => task.completed).length;
   const visibleTasks = showCompleted ? tasks : tasks.filter((task) => !task.completed);
@@ -57,10 +62,22 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
     }
     setEditingProject(false);
   };
-  const askAddSection = () => {
-    const name = window.prompt("New section name");
-    if (name?.trim()) setSectionError(onAddSection(name) ?? null);
+  const openSectionEditor = (section?: { id: string; name: string }) => {
+    setSectionName(section?.name ?? "");
+    setSectionError(null);
+    setSectionEditor({ sectionId: section?.id, title: section ? "Rename section" : "Add section" });
     setMenuOpen(false);
+  };
+  const saveSection = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const error = sectionEditor?.sectionId
+      ? onRenameSection(sectionEditor.sectionId, sectionName)
+      : onAddSection(sectionName);
+    if (error) {
+      setSectionError(error);
+      return;
+    }
+    setSectionEditor(null);
   };
 
   return (
@@ -78,14 +95,12 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
           <button type="button" onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100" aria-label="Project options"><MoreHorizontal className="h-4 w-4" /></button>
           {menuOpen && <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">
             <button type="button" onClick={openProjectEditor} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Pencil className="h-3.5 w-3.5" />Edit project</button>
-            <button type="button" onClick={askAddSection} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Plus className="h-3.5 w-3.5" />Add section</button>
+            <button type="button" onClick={() => openSectionEditor()} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Plus className="h-3.5 w-3.5" />Add section</button>
             <button type="button" onClick={() => { onArchiveProject(); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs hover:bg-zinc-50"><Archive className="h-3.5 w-3.5" />{project.archived ? "Unarchive project" : "Archive project"}</button>
-            <button type="button" onClick={() => { if (window.confirm(`Delete “${project.name}”? Its tasks will move to Inbox and keep their due dates.`)) onDeleteProject(); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-red-700 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete project</button>
+            <button type="button" onClick={() => { setDeleteTarget({ kind: "project" }); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-red-700 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete project</button>
           </div>}
         </div>
       </div>
-
-      {sectionError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{sectionError}</p>}
 
       {completedCount > 0 && <label className="flex min-h-10 w-fit cursor-pointer items-center gap-2 text-xs font-medium text-zinc-600">
         <input type="checkbox" checked={showCompleted} onChange={(event) => setShowCompleted(event.target.checked)} className="h-4 w-4 rounded border-zinc-300 accent-zinc-900" />
@@ -100,8 +115,8 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
         return <section key={section.id} className="space-y-1">
           <div className="group flex items-center gap-1">
             <SectionHeader title={section.name} count={sectionTasks.length} isOpen={isOpen} onToggle={() => setOpenSections((current) => ({ ...current, [section.id]: !isOpen }))} onAdd={() => { setCreatingSectionId(section.id); setOpenSections((current) => ({ ...current, [section.id]: true })); }} />
-            <button type="button" onClick={() => { const name = window.prompt("Section name", section.name); if (name?.trim()) setSectionError(onRenameSection(section.id, name) ?? null); }} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Rename ${section.name}`}><Pencil className="h-3 w-3" /></button>
-            <button type="button" onClick={() => window.confirm(`Delete section “${section.name}”? Its tasks will move to General.`) && onDeleteSection(section.id)} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Delete ${section.name}`}><Trash2 className="h-3 w-3" /></button>
+            <button type="button" onClick={() => openSectionEditor(section)} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Rename ${section.name}`}><Pencil className="h-3 w-3" /></button>
+            <button type="button" onClick={() => setDeleteTarget({ kind: "section", id: section.id, name: section.name })} className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-300 opacity-0 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100" aria-label={`Delete ${section.name}`}><Trash2 className="h-3 w-3" /></button>
           </div>
           {isOpen && <div className="space-y-1">
             <TaskListView {...actions} projects={actions.projects} title="" icon={null} tasks={sectionTasks} emptyTitle="" emptyDescription="" allowCreate={false} bare />
@@ -114,6 +129,21 @@ export function ProjectView({ project, tasks, onAddTask, onUpdateProject, onArch
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">General</h2>
         <TaskListView {...actions} projects={actions.projects} title="" icon={null} tasks={generalTasks} emptyTitle="" emptyDescription="" allowCreate={false} bare />
       </section>}
+
+      <Dialog open={Boolean(sectionEditor)} title={sectionEditor?.title ?? "Section"} description={sectionEditor?.sectionId ? "Choose a clear, unique name for this section." : "Sections group related tasks inside this project."} onClose={() => setSectionEditor(null)} initialFocusRef={sectionInputRef}>
+        <form onSubmit={saveSection} className="mt-5">
+          <label htmlFor="section-name" className="mb-1.5 block text-xs font-medium text-zinc-700">Section name</label>
+          <input ref={sectionInputRef} id="section-name" value={sectionName} onChange={(event) => { setSectionName(event.target.value); setSectionError(null); }} maxLength={100} required aria-invalid={Boolean(sectionError)} aria-describedby={sectionError ? "section-name-error" : undefined} className={`h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2 ${sectionError ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-zinc-300 focus:border-zinc-600 focus:ring-zinc-200"}`} />
+          {sectionError && <p id="section-name-error" role="alert" className="mt-1.5 text-xs text-red-700">{sectionError}</p>}
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" onClick={() => setSectionEditor(null)} className="h-10 rounded-lg px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-100">Cancel</button>
+            <button type="submit" disabled={!sectionName.trim()} className="h-10 rounded-lg bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40">{sectionEditor?.sectionId ? "Save name" : "Add section"}</button>
+          </div>
+        </form>
+      </Dialog>
+
+      <ConfirmDialog open={deleteTarget?.kind === "project"} title={`Delete “${project.name}”?`} description="The project will be removed. Its tasks will move to Inbox, while their due dates and other details stay unchanged." confirmLabel="Delete project" destructive onClose={() => setDeleteTarget(null)} onConfirm={() => { setDeleteTarget(null); onDeleteProject(); }} />
+      <ConfirmDialog open={deleteTarget?.kind === "section"} title={deleteTarget?.kind === "section" ? `Delete “${deleteTarget.name}”?` : "Delete section?"} description="Tasks in this section will move to General. No tasks will be deleted." confirmLabel="Delete section" destructive onClose={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget?.kind === "section") onDeleteSection(deleteTarget.id); setDeleteTarget(null); }} />
 
       {editingProject && <div className="fixed inset-0 z-[70] flex items-end justify-center bg-zinc-950/30 p-0 sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingProject(false)}>
         <form onSubmit={saveProject} role="dialog" aria-modal="true" aria-labelledby="edit-project-title" className="w-full rounded-t-2xl bg-white p-5 shadow-xl sm:max-w-md sm:rounded-xl sm:p-6">

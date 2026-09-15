@@ -76,17 +76,22 @@ test("creates custom projects and sections and files tasks contextually", async 
   await page.getByRole("button", { name: /Client Work/ }).click();
   await expect(page.getByRole("heading", { name: "Client Work" })).toBeVisible();
 
-  page.once("dialog", (dialog) => dialog.accept("Delivery"));
-  const sectionSave = waitForSave(page, "Delivery");
   await page.getByRole("button", { name: "Project options" }).click();
   await page.getByRole("button", { name: "Add section" }).click();
+  const sectionDialog = page.getByRole("dialog", { name: "Add section" });
+  await sectionDialog.getByLabel("Section name").fill("Delivery");
+  const sectionSave = waitForSave(page, "Delivery");
+  await sectionDialog.getByRole("button", { name: "Add section" }).click();
   expect((await sectionSave).ok()).toBe(true);
   await expect(page.getByText("Delivery", { exact: true })).toBeVisible();
 
-  page.once("dialog", (dialog) => dialog.accept("delivery"));
   await page.getByRole("button", { name: "Project options" }).click();
   await page.getByRole("button", { name: "Add section" }).click();
+  const duplicateSectionDialog = page.getByRole("dialog", { name: "Add section" });
+  await duplicateSectionDialog.getByLabel("Section name").fill("delivery");
+  await duplicateSectionDialog.getByRole("button", { name: "Add section" }).click();
   await expect(page.getByText("A section with this name already exists.", { exact: true })).toBeVisible();
+  await duplicateSectionDialog.getByRole("button", { name: "Cancel" }).click();
 
   await page.getByRole("button", { name: "Add task to Delivery" }).click();
   const creator = page.getByPlaceholder("Add a task to Delivery...");
@@ -98,11 +103,22 @@ test("creates custom projects and sections and files tasks contextually", async 
   await expect(page.getByLabel("Section")).not.toHaveValue("");
   await page.getByRole("button", { name: "Close task details" }).click();
 
-  page.once("dialog", (dialog) => dialog.accept("Execution"));
-  const renameSectionSave = waitForSave(page, "Execution");
   await page.getByRole("button", { name: "Rename Delivery" }).click();
+  const renameDialog = page.getByRole("dialog", { name: "Rename section" });
+  await renameDialog.getByLabel("Section name").fill("Execution");
+  const renameSectionSave = waitForSave(page, "Execution");
+  await renameDialog.getByRole("button", { name: "Save name" }).click();
   await renameSectionSave;
   await expect(page.getByText("Execution", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Delete Execution" }).click();
+  const deleteSectionDialog = page.getByRole("dialog", { name: /Delete “Execution”/ });
+  await expect(deleteSectionDialog.getByText("Tasks in this section will move to General. No tasks will be deleted.")).toBeVisible();
+  const deleteSectionSave = waitForSave(page, "Ship custom workflow");
+  await deleteSectionDialog.getByRole("button", { name: "Delete section" }).click();
+  await deleteSectionSave;
+  await expect(page.getByText("Execution", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Ship custom workflow", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Project options" }).click();
   await page.getByRole("button", { name: "Edit project" }).click();
@@ -163,10 +179,10 @@ test("keeps due dates independent from availability and project deletion", async
 
   await page.getByRole("button", { name: "Close task details" }).click();
   await page.getByRole("button", { name: /Scheduled Work/ }).click();
-  page.once("dialog", (dialog) => dialog.accept());
   const deleteSave = page.waitForResponse((response) => response.url().endsWith("/api/tasks") && response.request().method() === "PUT");
   await page.getByRole("button", { name: "Project options" }).click();
   await page.getByRole("button", { name: "Delete project" }).click();
+  await page.getByRole("dialog", { name: /Delete “Scheduled Work”/ }).getByRole("button", { name: "Delete project" }).click();
   await deleteSave;
 
   await expect(page.getByRole("heading", { name: "Inbox" })).toBeVisible();
@@ -220,10 +236,29 @@ test("keeps Trash until the user restores or permanently deletes items", async (
   await row.getByTitle("Move to trash").click();
   await secondTrashSave;
   await page.getByRole("button", { name: /Trash/ }).click();
-  page.once("dialog", (dialog) => dialog.accept());
   const permanentSave = page.waitForResponse((response) => response.url().endsWith("/api/tasks") && response.request().method() === "PUT" && !response.request().postData()?.includes("Manual trash task"));
   await page.getByRole("button", { name: "Delete permanently" }).click();
+  const permanentDialog = page.getByRole("dialog", { name: /Permanently delete “Manual trash task”/ });
+  await permanentDialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Manual trash task", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Delete permanently" }).click();
+  await page.getByRole("dialog", { name: /Permanently delete “Manual trash task”/ }).getByRole("button", { name: "Delete permanently" }).click();
   await permanentSave;
+  await expect(page.getByText("Trash is empty")).toBeVisible();
+
+  await page.getByRole("button", { name: /Today/ }).click();
+  await createTodayTask(page, "Empty trash task");
+  await page.getByRole("button", { name: "Close task details" }).click();
+  const moveToTrashSave = waitForSave(page, "deletedAt");
+  await page.getByTitle("Move to trash").click();
+  await moveToTrashSave;
+  await page.getByRole("button", { name: /Trash/ }).click();
+  await page.getByRole("button", { name: "Empty Trash" }).click();
+  const emptyDialog = page.getByRole("dialog", { name: "Permanently delete 1 item?" });
+  await expect(emptyDialog.getByText("This action cannot be undone. The deleted data cannot be restored from Trash.")).toBeVisible();
+  const emptySave = page.waitForResponse((response) => response.url().endsWith("/api/tasks") && response.request().method() === "PUT" && !response.request().postData()?.includes("Empty trash task"));
+  await emptyDialog.getByRole("button", { name: "Empty Trash" }).click();
+  await emptySave;
   await expect(page.getByText("Trash is empty")).toBeVisible();
 });
 

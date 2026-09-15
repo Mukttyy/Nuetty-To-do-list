@@ -71,6 +71,58 @@ async function createTodayTask(page: Page, title: string) {
   expect((await save).ok()).toBe(true);
 }
 
+test("shows task feedback, status, priority and dismissible Undo", async ({ page }) => {
+  await createAccount(page);
+  await createTodayTask(page, "Feedback task");
+  await page.getByLabel("Task status").selectOption("in_progress");
+  const prioritySave = waitForSave(page, '"priority":"high"');
+  await page.getByLabel("Priority", { exact: true }).selectOption("high");
+  await prioritySave;
+  await page.getByRole("button", { name: "Close task details" }).click();
+  const row = page.locator("[data-task-id]", { hasText: "Feedback task" });
+  await expect(row.getByText("In progress", { exact: true })).toBeVisible();
+  await expect(row.getByText("High priority", { exact: true })).toBeVisible();
+  const deleted = waitForSave(page, '"isDeleted":true');
+  await row.getByTitle("Move to trash").click();
+  await deleted;
+  await expect(page.getByText("Task moved to Trash.", { exact: true })).toBeVisible();
+  const restored = waitForSave(page, '"isDeleted":false');
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await restored;
+  await expect(page.getByText("Task restored.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Dismiss notification" }).click();
+  await expect(page.getByText("Task restored.", { exact: true })).toHaveCount(0);
+  await expect(row).toBeVisible();
+  const completed = waitForSave(page, '"completed":true');
+  await row.getByRole("checkbox").click();
+  await completed;
+  await page.getByRole("button", { name: "View task" }).click();
+  await expect(page.getByRole("heading", { name: "Completed", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Task status")).toHaveValue("done");
+});
+
+test("failed saves show Retry and saved feedback expires without deleting tasks", async ({ page }) => {
+  await createAccount(page);
+  await page.clock.install();
+  await page.route("**/api/tasks", async route => {
+    if (route.request().method() === "PUT") await route.fulfill({ status: 500, body: "Save unavailable" });
+    else await route.continue();
+  });
+  await page.getByRole("button", { name: "New task", exact: true }).click();
+  await page.getByPlaceholder("Add a task for today...").fill("Retry feedback task");
+  await page.getByPlaceholder("Add a task for today...").press("Enter");
+  await expect(page.getByText("Changes could not be saved.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Task created.", { exact: true })).toHaveCount(0);
+  await page.unroute("**/api/tasks");
+  const saved = waitForSave(page, "Retry feedback task");
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await saved;
+  await expect(page.getByText("Task created.", { exact: true })).toBeVisible();
+  await page.clock.fastForward(9000);
+  await expect(page.getByText("Task created.", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Task title")).toHaveValue("Retry feedback task");
+});
+
 test("reports database health and rejects anonymous task access", async ({ request }) => {
   const health = await request.get("/api/health");
   expect(health.ok()).toBe(true);

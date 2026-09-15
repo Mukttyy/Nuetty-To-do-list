@@ -8,6 +8,7 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { ProjectView } from "@/components/views/project-view";
 import { TaskListView, type TaskListActions } from "@/components/views/task-list-view";
 import { TrashView } from "@/components/views/trash-view";
+import { TaskNotice } from "@/components/ui/task-notice";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { localDateKey, taskSchedule, useTasks } from "@/lib/use-tasks";
 import type { Task, TaskStatus } from "@/types/task";
@@ -104,7 +105,7 @@ function TaskDashboard() {
       }
       if (isCommandPaletteOpen) return;
       const tag = document.activeElement?.tagName.toLocaleLowerCase();
-      if (tag === "input" || tag === "textarea" || document.activeElement?.getAttribute("contenteditable") === "true") return;
+      if (tag === "input" || tag === "textarea" || tag === "select" || tag === "button" || document.activeElement?.getAttribute("contenteditable") === "true") return;
       if (event.key === "Escape" && taskState.selectedTask) {
         event.preventDefault();
         taskState.collapseTask();
@@ -173,7 +174,11 @@ function TaskDashboard() {
     </AppShell>
 
     <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} tasks={tasks} projects={projects} onSelectTask={openSearchResult} />
-    {taskState.lastDeletedTaskId && <div role="status" className="fixed bottom-4 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-4 rounded-lg bg-zinc-900 px-4 py-3 text-xs text-white shadow-lg"><span>Task moved to Trash.</span><button type="button" onClick={taskState.undoDelete} className="font-semibold underline underline-offset-2">Undo</button></div>}
+    {taskState.notification && !taskState.syncError && <TaskNotice key={taskState.notification.id} notice={taskState.notification} status={taskState.syncStatus} onDismiss={taskState.dismissNotification} onUndo={taskState.undoDelete} onView={tasks.some(task => task.id === taskState.notification?.taskId) ? () => {
+      const task = tasks.find(task => task.id === taskState.notification?.taskId);
+      if (task) openSearchResult(task);
+      taskState.dismissNotification();
+    } : undefined} />}
     {taskState.syncError && <div role="alert" className="fixed bottom-4 right-4 z-[60] max-w-sm rounded-lg border border-amber-300 bg-white px-4 py-3 text-xs shadow-lg"><p>{taskState.syncError}</p><div className="mt-2 flex gap-3">{taskState.syncStatus === "conflict" ? <><button type="button" onClick={taskState.loadServerCopy} className="font-semibold underline">Use server copy</button><button type="button" onClick={taskState.keepLocalCopy} className="font-semibold underline">Keep this copy</button></> : <button type="button" onClick={taskState.retrySync} className="font-semibold underline">Retry</button>}</div></div>}
   </>;
 }

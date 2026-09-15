@@ -7,6 +7,17 @@ import type { ActivityEntry, Project, Subtask, Task, TaskPriority, TaskSchedule,
 
 export type { TaskSyncStatus } from "@/lib/use-task-sync";
 
+export interface TaskNotice {
+  id: string;
+  message: string;
+  taskId?: string;
+  undo?: boolean;
+}
+
+function notice(message: string, taskId?: string, undo = false): TaskNotice {
+  return { id: crypto.randomUUID(), message, taskId, undo };
+}
+
 function createEntityId(prefix: "task" | "sub" | "act" | "project" | "section"): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
@@ -36,6 +47,7 @@ export function taskSchedule(task: Task): TaskSchedule {
 export function useTasks(actorName = "Current user") {
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null);
   const [lastDeletedTaskId, setLastDeletedTaskId] = React.useState<string | null>(null);
+  const [notification, setNotification] = React.useState<TaskNotice | null>(null);
   const sync = useTaskSync(actorName);
   const { tasks, projects, mutateTasks, mutateProjects } = sync;
 
@@ -66,6 +78,7 @@ export function useTasks(actorName = "Current user") {
   const toggleTask = React.useCallback((id: string) => {
     const currentTask = tasks.find((task) => task.id === id);
     if (!currentTask) return;
+    setNotification(notice(currentTask.completed ? "Task reopened." : "Task completed.", id));
     if (!currentTask.completed) playCompleteSound();
     updateTask(id, (task) => {
       const completed = !task.completed;
@@ -80,6 +93,7 @@ export function useTasks(actorName = "Current user") {
   }, [actorName, tasks, updateTask]);
 
   const updateTaskStatus = React.useCallback((id: string, status: TaskStatus) => {
+    setNotification(notice(status === "done" ? "Task completed." : "Task status updated.", id));
     updateTask(id, (task) => {
       if (task.status === status) return task;
       if (status === "done" && !task.completed) playCompleteSound();
@@ -102,6 +116,7 @@ export function useTasks(actorName = "Current user") {
     updateTask(id, (task) => ({ ...task, notes }));
   }, [updateTask]);
   const updateTaskSchedule = React.useCallback((id: string, schedule: TaskSchedule) => {
+    setNotification(notice(`Availability changed to ${schedule[0].toUpperCase() + schedule.slice(1)}.`, id));
     updateTask(id, (task) => ({
       ...task,
       schedule,
@@ -109,6 +124,7 @@ export function useTasks(actorName = "Current user") {
     }));
   }, [actorName, updateTask]);
   const updateTaskDueDate = React.useCallback((id: string, dueDate?: string) => {
+    setNotification(notice(dueDate ? `Task scheduled for ${dueDate <= localDateKey() ? "Today" : "Upcoming"}.` : "Due date cleared.", id));
     updateTask(id, (task) => ({
       ...task,
       dueDate: dueDate || undefined,
@@ -123,6 +139,7 @@ export function useTasks(actorName = "Current user") {
   }, [updateTask]);
   const moveTaskProject = React.useCallback((id: string, projectId?: string) => {
     const projectName = projects.find((project) => project.id === projectId)?.name ?? "No project";
+    setNotification(notice(`Project changed to ${projectName}.`, id));
     updateTask(id, (task) => ({
       ...task,
       projectId: projectId || undefined,
@@ -185,14 +202,17 @@ export function useTasks(actorName = "Current user") {
     };
     mutateTasks((current) => [task, ...current]);
     setSelectedTaskId(task.id);
+    setNotification(notice("Task created.", task.id));
   }, [actorName, mutateTasks]);
 
   const deleteTask = React.useCallback((id: string) => {
     updateTask(id, (task) => ({ ...task, isDeleted: true, deletedAt: new Date().toISOString() }));
     setLastDeletedTaskId(id);
+    setNotification(notice("Task moved to Trash.", id, true));
     if (selectedTaskId === id) setSelectedTaskId(null);
   }, [selectedTaskId, updateTask]);
   const restoreTask = React.useCallback((id: string) => {
+    setNotification(notice("Task restored.", id));
     updateTask(id, (task) => ({ ...task, isDeleted: false, deletedAt: undefined }));
     if (lastDeletedTaskId === id) setLastDeletedTaskId(null);
   }, [lastDeletedTaskId, updateTask]);
@@ -200,10 +220,12 @@ export function useTasks(actorName = "Current user") {
     if (lastDeletedTaskId) restoreTask(lastDeletedTaskId);
   }, [lastDeletedTaskId, restoreTask]);
   const permanentlyDeleteTask = React.useCallback((id: string) => {
+    setNotification(notice("Task removed permanently."));
     mutateTasks((current) => current.filter((task) => task.id !== id));
     if (lastDeletedTaskId === id) setLastDeletedTaskId(null);
   }, [lastDeletedTaskId, mutateTasks]);
   const emptyTrash = React.useCallback(() => {
+    setNotification(notice("Trash emptied."));
     mutateTasks((current) => current.filter((task) => !task.isDeleted));
     setLastDeletedTaskId(null);
   }, [mutateTasks]);
@@ -230,8 +252,9 @@ export function useTasks(actorName = "Current user") {
     } : project));
   }, [mutateProjects, projects]);
   const archiveProject = React.useCallback((id: string) => {
+    setNotification(notice(projects.find((project) => project.id === id)?.archived ? "Project unarchived." : "Project archived. Tasks remain available in your lists."));
     mutateProjects((current) => current.map((project) => project.id === id ? { ...project, archived: !project.archived } : project));
-  }, [mutateProjects]);
+  }, [mutateProjects, projects]);
   const deleteProject = React.useCallback((id: string) => {
     mutateTasks((current) => current.map((task) => task.projectId === id
       ? { ...task, projectId: undefined, sectionId: undefined, schedule: "inbox" as const }
@@ -267,6 +290,7 @@ export function useTasks(actorName = "Current user") {
   }, [mutateProjects, mutateTasks]);
 
   return {
+    notification, dismissNotification: () => setNotification(null),
     ...sync, tasks, projects, selectedTask, selectedTaskId, lastDeletedTaskId, counts,
     selectTask: (task: Task | null) => setSelectedTaskId(task?.id ?? null),
     collapseTask: () => setSelectedTaskId(null), toggleTask, updateTaskTitle, updateTaskStatus,

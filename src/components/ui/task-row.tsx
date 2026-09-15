@@ -232,6 +232,10 @@ export const TaskRow = React.forwardRef<HTMLDivElement, TaskRowProps>(function T
         <button type="button" onClick={onToggleExpand ?? onSelect} className="min-w-0 flex-1 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-zinc-400" aria-label={`Open task: ${title}`}>
           <span className={cn("block select-text truncate text-[13.5px] font-medium text-zinc-900", completed && "font-normal text-zinc-400 line-through")}>{title}</span>
           {subtasks.length > 0 && <span className="mt-0.5 flex items-center gap-1 text-[11px] text-zinc-500"><CheckSquare className="h-3 w-3" />{completedSubtasks}/{subtasks.length}</span>}
+          {!completed && (status === "in_progress" || priority !== "none") && <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500">
+            {status === "in_progress" && <span>In progress</span>}
+            {priority !== "none" && <span className={priority === "high" ? "font-medium text-red-700" : undefined}>{priority[0].toUpperCase() + priority.slice(1)} priority</span>}
+          </span>}
         </button>
       </div>
       <div className="flex items-center gap-1.5">

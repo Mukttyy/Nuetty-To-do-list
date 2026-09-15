@@ -27,6 +27,11 @@ const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const session = authClient.useSession();
+  const [hasResolvedSession, setHasResolvedSession] = React.useState(false);
+  // A background refresh can be pending again for an anonymous session.
+  // Only the first check should replace the page with a loading screen.
+  if (!session.isPending && !hasResolvedSession) setHasResolvedSession(true);
+  const isLoading = session.isPending && !hasResolvedSession;
   const sessionUser = session.data?.user;
 
   const user = React.useMemo<AuthUser | null>(() => {
@@ -61,12 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       isAuthenticated: user !== null,
-      isLoading: session.isPending,
+      isLoading,
       signIn,
       signUp,
       logout,
     }),
-    [user, session.isPending, signIn, signUp, logout]
+    [user, isLoading, signIn, signUp, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

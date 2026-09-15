@@ -1,5 +1,30 @@
 import { expect, type Page, test } from "@playwright/test";
 
+test("preserves login fields while checking session after returning to a tab", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("heading", { name: "Sign in to Nuetty" }).waitFor();
+  await page.getByLabel("Email").fill("tab-check@example.test");
+  await page.getByLabel("Password", { exact: true }).fill("Tab-check-2026!");
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let started!: () => void;
+  const requested = new Promise<void>((resolve) => { started = resolve; });
+  await page.route("**/api/auth/get-session**", async (route) => {
+    started();
+    await gate;
+    await route.continue();
+  });
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await requested;
+  try {
+    await expect(page.getByLabel("Email")).toHaveValue("tab-check@example.test");
+    await expect(page.getByLabel("Password", { exact: true })).toHaveValue("Tab-check-2026!");
+  } finally {
+    release();
+  }
+  await expect(page.getByLabel("Email")).toHaveValue("tab-check@example.test");
+});
+
 async function createAccount(page: Page, name = "Audit User") {
   const email = `audit-${Date.now()}-${Math.random().toString(16).slice(2)}@example.test`;
   await page.goto("/");
